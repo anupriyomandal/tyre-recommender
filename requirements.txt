@@ -7,3 +7,7 @@ python-dotenv
 pydantic
 loguru
 openai
+fastapi
+uvicorn
+python-telegram-bot
+requests
