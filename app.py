@@ -65,8 +65,10 @@ def main():
             # Keep history to last 10 exchanges (20 messages) to avoid token overflow
             if len(history) > 20:
                 history = history[-20:]
-                
-            console.print(f"\n[bold purple]Agent>[/bold purple] {answer}")
+            
+            # Convert HTML bold tags to Rich markup for CLI display
+            display_answer = answer.replace("<b>", "[bold]").replace("</b>", "[/bold]")
+            console.print(f"\n[bold purple]Agent>[/bold purple] {display_answer}")
                 
         except KeyboardInterrupt:
             # Handle Ctrl+C gracefully
