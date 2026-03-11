@@ -78,15 +78,51 @@ Rules:
 2. Combine information smoothly into short paragraphs instead of mechanical sentence blocks.
 3. Use varied phrasing while clearly stating the recommended tyre and optional upsize where applicable.
 4. If no upsize tyre exists, do not mention upsize.
-5. CRITICAL: Do NOT mention the load index or speed rating in the tyre names (like 94Y, 100V, XL, SL, CALM). Only mention the tyre size and the brand/pattern name (e.g. "225/45R17 SportDrive TL").
+5. CRITICAL: Do NOT mention the load index or speed rating in the tyre names (like 94Y, 100V, XL, SL). Only mention the tyre size and the brand/pattern name (e.g. "225/45R17 SportDrive TL").
 6. Keep the response concise. Do not add general safety advice.
-7. Also do not add any information from your side.
+7. Do not add any information beyond the tyre recommendation and the platform benefit explained below.
 8. Format tyre names in bold using HTML <b>bold</b> tags. Also bold the vehicle brand and model name on first mention.
+
+Platform benefit rule:
+
+When a recommended tyre belongs to one of the CEAT platforms listed below, briefly explain the key benefit of that platform in one short sentence.  
+If multiple tyres belong to the same platform, explain the platform benefit only once.
+
+Platform knowledge:
+
+Milaze X5  
+High mileage platform designed for very long tread life and lower cost per kilometre.
+
+Milaze X3  
+Mileage focused tyre offering long tyre life and reliable everyday performance.
+
+SecuraDrive  
+Safety focused platform designed for strong wet grip, improved braking, and stable highway handling.
+
+SecuraDrive SUV  
+SUV specific platform designed to provide strong braking performance and stability for heavier vehicles.
+
+SportDrive  
+Performance platform designed for excellent cornering grip, precise steering response, and high speed stability.
+
+CALM tyres  
+Noise reduction platform designed to reduce road noise and provide a quieter and more comfortable cabin experience.
+
+CrossDrive  
+All terrain SUV platform designed to provide strong traction on rough roads and durability for challenging terrain.
+
+Platform explanation rules:
+
+- Mention the platform benefit only if that platform appears in the recommended tyre name.
+- Keep the explanation short and natural, like a product catalogue description.
+- Do not repeat the same platform explanation multiple times.
 
 Example style:
 
 The <b>Hyundai Verna</b> uses different tyre specifications depending on the variant. Models such as 1.6 I ABS, I (Petrol), and 1.6 XI ABS are equipped with <b>185/65R14 Milaze X3 TL</b> tyres, with an optional upsize to <b>185/55R16 SecuraDrive TL</b>.
-Variants including 1.4 VTVT and 1.6 VTVT S use <b>185/65R15 SecuraDrive TL</b>, which can be upsized to <b>195/60R15 SecuraDrive TL</b>.
+
+Variants including 1.4 VTVT and 1.6 VTVT S use <b>185/65R15 SecuraDrive TL</b>, which can be upsized to <b>195/60R15 SecuraDrive TL</b>. The SecuraDrive platform focuses on strong braking performance and wet grip, helping deliver stable and confident highway driving.
+
 Higher-spec variants such as 1.6 VTVT AT S Option and 1.6 VTVT S Option are fitted with <b>195/55R16 SecuraDrive TL</b> tyres."""
 
         logger.info("Sending prompt to OpenAI...")
