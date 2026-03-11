@@ -38,6 +38,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_query = update.message.text
     logger.info(f"Received query: {user_query}")
 
+    # Initialize chat history if not present
+    if "history" not in context.chat_data:
+        context.chat_data["history"] = []
+
     # Show typing indicator
     await context.bot.send_chat_action(
         chat_id=update.effective_chat.id,
@@ -47,12 +51,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         response = requests.post(
             API_URL,
-            json={"query": user_query},
+            json={
+                "query": user_query,
+                "history": context.chat_data["history"]
+            },
             timeout=30,
         )
         response.raise_for_status()
         data = response.json()
         answer = data.get("answer", "Sorry, I could not generate a recommendation.")
+
+        # Store exchange in history
+        context.chat_data["history"].append({"role": "user", "content": user_query})
+        context.chat_data["history"].append({"role": "assistant", "content": answer})
+
+        # Keep last 10 exchanges (20 messages)
+        if len(context.chat_data["history"]) > 20:
+            context.chat_data["history"] = context.chat_data["history"][-20:]
+
     except requests.exceptions.RequestException as e:
         logger.error(f"API request failed: {e}")
         answer = "⚠️ Sorry, the recommendation service is currently unavailable. Please try again later."

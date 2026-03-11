@@ -56,7 +56,7 @@ def ask(request: QueryRequest):
         raise HTTPException(status_code=503, detail="Recommender not initialized.")
 
     try:
-        answer = recommender.recommend(request.query)
+        answer = recommender.recommend(request.query, history=request.history)
         return {"answer": answer}
     except Exception as e:
         logger.error(f"/ask error: {e}")

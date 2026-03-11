@@ -36,6 +36,9 @@ def main():
         console.print("[yellow]Hint: Did you run `python src/main.py build-index` first?[/yellow]")
         sys.exit(1)
 
+    # Conversation memory
+    history = []
+
     while True:
         try:
             query = console.input("\n[bold green]User>[/bold green] ").strip()
@@ -46,9 +49,22 @@ def main():
             if query.lower() in ['exit', 'quit']:
                 console.print("[blue]Goodbye![/blue]")
                 break
+
+            if query.lower() == 'clear':
+                history.clear()
+                console.print("[yellow]Conversation history cleared.[/yellow]")
+                continue
                 
             with console.status("[blue]Agent is thinking...[/blue]"):
-                answer = recommender.recommend(query)
+                answer = recommender.recommend(query, history=history)
+            
+            # Store the exchange in history
+            history.append({"role": "user", "content": query})
+            history.append({"role": "assistant", "content": answer})
+            
+            # Keep history to last 10 exchanges (20 messages) to avoid token overflow
+            if len(history) > 20:
+                history = history[-20:]
                 
             console.print(f"\n[bold purple]Agent>[/bold purple] {answer}")
                 

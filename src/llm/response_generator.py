@@ -18,9 +18,10 @@ class ResponseGenerator:
     def __init__(self, model: str = "gpt-4o-mini"):
         self.model = model
 
-    def generate(self, query: str, vehicle_rows: list[dict]) -> str:
+    def generate(self, query: str, vehicle_rows: list[dict], history: list[dict] | None = None) -> str:
         """
         Generate natural language recommendation from rows.
+        history: list of {"role": "user"|"assistant", "content": "..."} messages
         """
         if not client:
             raise ValueError("OpenAI API key is not configured.")
@@ -127,12 +128,20 @@ Higher-spec variants such as 1.6 VTVT AT S Option and 1.6 VTVT S Option are fitt
 
         logger.info("Sending prompt to OpenAI...")
         try:
+            messages = [
+                {"role": "system", "content": "You are a helpful tyre recommendation expert."}
+            ]
+            
+            # Append conversation history if available
+            if history:
+                messages.extend(history)
+            
+            # Append the current query with vehicle context
+            messages.append({"role": "user", "content": prompt})
+            
             response = client.chat.completions.create(
                 model=self.model,
-                messages=[
-                    {"role": "system", "content": "You are a helpful tyre recommendation expert."},
-                    {"role": "user", "content": prompt}
-                ],
+                messages=messages,
                 temperature=1
             )
             answer = response.choices[0].message.content.strip()

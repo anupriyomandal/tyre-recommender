@@ -13,11 +13,11 @@ class TyreRecommender:
         self.vector_search = VectorSearch(index_path, metadata_path)
         self.response_generator = ResponseGenerator()
 
-    def recommend(self, query: str) -> str:
+    def recommend(self, query: str, history: list[dict] | None = None) -> str:
         """
         1 vector search
         2 retrieve vehicle rows
-        3 send rows to ResponseGenerator
+        3 send rows to ResponseGenerator with conversation history
         4 return natural language answer
         """
         logger.info(f"Starting recommendation workflow for query: '{query}'")
@@ -34,7 +34,7 @@ class TyreRecommender:
 
         # 3 & 4. Generate and return natural language answer
         try:
-            answer = self.response_generator.generate(query, vehicle_rows)
+            answer = self.response_generator.generate(query, vehicle_rows, history=history)
             return answer
         except Exception as e:
             logger.error(f"Response generation failed: {e}")
