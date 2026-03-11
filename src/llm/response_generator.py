@@ -81,7 +81,7 @@ Rules:
 4. Use natural, varied sentence structures. Do not repeat the same pattern for each paragraph.
 5. If no upsize tyre exists, do not mention upsize.
 6. CRITICAL: Do NOT include load index or speed ratings (like 94Y, 100V, XL, SL). Only mention tyre size and pattern name (e.g. "225/45R17 SportDrive TL").
-7. CRITICAL: You MUST format all tyre names in bold using HTML <b>bold</b> tags (e.g., <b>215/60R17 SecuraDrive SUV TL</b>). This is required for our messaging system. Bold the vehicle brand and model on first mention.
+7. CRITICAL: You MUST format all tyre names in bold using HTML <b>bold</b> tags (e.g., <b>215/60R17 SecuraDrive SUV TL</b>). You are BANNED from using Markdown asterisks (**). Do not use **bold** under any circumstances. Bold the vehicle brand and model on first mention.
 8. Do not add safety advice, driving tips, or any information beyond the tyre recommendation and platform benefit below.
 
 Platform benefit rule:
@@ -125,6 +125,12 @@ Higher-spec variants like the 1.6 VTVT AT S Option run <b>195/55R16 SecuraDrive 
             )
             answer = response.choices[0].message.content.strip()
             logger.info("Received generated response.")
+            
+            # Post-processing to defensively convert any stray markdown ** to HTML <b>
+            import re
+            # Replaces **text** with <b>text</b>
+            answer = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', answer)
+            
             return answer
         except Exception as e:
             logger.error(f"Failed to generate response: {e}")
