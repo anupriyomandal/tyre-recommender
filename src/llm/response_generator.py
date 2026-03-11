@@ -71,62 +71,39 @@ User query:
 Vehicle data (already grouped):
 {rows_text}
 
-Write the recommendation in a professional and natural tone similar to an automotive product guide.
+Write a concise, natural-sounding tyre recommendation as if you are a knowledgeable tyre advisor speaking to a customer.
 
 Rules:
 
-1. Avoid repeating the same sentence structure for every variant group.
-2. Combine information smoothly into short paragraphs instead of mechanical sentence blocks.
-3. Use varied phrasing while clearly stating the recommended tyre and optional upsize where applicable.
-4. If no upsize tyre exists, do not mention upsize.
-5. CRITICAL: Do NOT mention the load index or speed rating in the tyre names (like 94Y, 100V, XL, SL). Only mention the tyre size and the brand/pattern name (e.g. "225/45R17 SportDrive TL").
-6. Keep the response concise. Do not add general safety advice.
-7. Do not add any information beyond the tyre recommendation and the platform benefit explained below.
-8. Format tyre names in bold using HTML <b>bold</b> tags. Also bold the vehicle brand and model name on first mention.
-9. Do NOT start with a generic introductory sentence like "The Hyundai EON has specific tyre requirements based on its variants." Jump straight into the recommendation.
-10. Do NOT end with a generic summary or conclusion like "In summary, the vehicle offers tailored tyre options..." End after the last recommendation.
+1. Start directly with the recommendation. No introductions.
+2. End after the last recommendation. No summaries or conclusions.
+3. When many variants share the same tyre, refer to them as a group (e.g. "most variants" or "the base and mid variants") instead of listing every single variant name. Only name specific variants when they differ from the rest.
+4. Use natural, varied sentence structures. Do not repeat the same pattern for each paragraph.
+5. If no upsize tyre exists, do not mention upsize.
+6. CRITICAL: Do NOT include load index or speed ratings (like 94Y, 100V, XL, SL). Only mention tyre size and pattern name (e.g. "225/45R17 SportDrive TL").
+7. Format tyre names in bold using HTML <b>bold</b> tags. Bold the vehicle brand and model on first mention.
+8. Do not add safety advice, driving tips, or any information beyond the tyre recommendation and platform benefit below.
 
 Platform benefit rule:
 
-When a recommended tyre belongs to one of the CEAT platforms listed below, briefly explain the key benefit of that platform in one short sentence.  
-If multiple tyres belong to the same platform, explain the platform benefit only once.
+If a recommended tyre belongs to one of the CEAT platforms below, weave the platform benefit naturally into the recommendation in a few words. Do not repeat the same platform benefit more than once.
 
-Platform knowledge:
+Platforms:
+- Milaze X5: high mileage, long tread life
+- Milaze X3: mileage focused, reliable everyday performance
+- SecuraDrive: strong wet grip, improved braking
+- SecuraDrive SUV: braking performance and stability for SUVs
+- SportDrive: cornering grip, steering precision, high speed stability
+- CALM: reduced road noise, quieter cabin
+- CrossDrive: off-road traction and durability
 
-Milaze X5  
-High mileage platform designed for very long tread life and lower cost per kilometre.
+Example:
 
-Milaze X3  
-Mileage focused tyre offering long tyre life and reliable everyday performance.
+Most <b>Hyundai Verna</b> variants — including the 1.6 I ABS, I (Petrol), and 1.6 XI ABS — come fitted with <b>185/65R14 Milaze X3 TL</b>, a mileage-focused tyre built for reliable everyday use. An upsize to <b>185/55R16 SecuraDrive TL</b> is available for those looking for better wet grip and braking.
 
-SecuraDrive  
-Safety focused platform designed for strong wet grip, improved braking, and stable highway handling.
+The 1.4 VTVT and 1.6 VTVT S use <b>185/65R15 SecuraDrive TL</b>, with an upsize option to <b>195/60R15 SecuraDrive TL</b>.
 
-SecuraDrive SUV  
-SUV specific platform designed to provide strong braking performance and stability for heavier vehicles.
-
-SportDrive  
-Performance platform designed for excellent cornering grip, precise steering response, and high speed stability.
-
-CALM tyres  
-Noise reduction platform designed to reduce road noise and provide a quieter and more comfortable cabin experience.
-
-CrossDrive  
-All terrain SUV platform designed to provide strong traction on rough roads and durability for challenging terrain.
-
-Platform explanation rules:
-
-- Mention the platform benefit only if that platform appears in the recommended tyre name.
-- Keep the explanation short and natural, like a product catalogue description.
-- Do not repeat the same platform explanation multiple times.
-
-Example style:
-
-For the <b>Hyundai Verna</b> 1.6 I ABS, I (Petrol), and 1.6 XI ABS variants, the recommended tyre is <b>185/65R14 Milaze X3 TL</b>, with an optional upsize to <b>185/55R16 SecuraDrive TL</b>.
-
-The 1.4 VTVT and 1.6 VTVT S variants use <b>185/65R15 SecuraDrive TL</b>, which can be upsized to <b>195/60R15 SecuraDrive TL</b>. The SecuraDrive platform focuses on strong braking performance and wet grip, helping deliver stable and confident highway driving.
-
-Higher-spec variants such as 1.6 VTVT AT S Option and 1.6 VTVT S Option are fitted with <b>195/55R16 SecuraDrive TL</b> tyres."""
+Higher-spec variants like the 1.6 VTVT AT S Option run <b>195/55R16 SecuraDrive TL</b>."""
 
         logger.info("Sending prompt to OpenAI...")
         try:
