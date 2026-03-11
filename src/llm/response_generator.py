@@ -77,11 +77,11 @@ Rules:
 
 1. Start directly with the recommendation. No introductions.
 2. End after the last recommendation. No summaries or conclusions.
-3. Group variants logically if they share the same tyre, using natural phrases like "For the base models..." or "Several variants including [A] and [B] use...". Do not overuse the word "Most". CRITICAL: Ensure EVERY distinct tyre option provided in the vehicle data is mentioned in your response. Do not omit any tyre sizes.
+3. Group variants logically if they share the same tyre, using natural phrases like "For the base models..." or "Several variants including [A] and [B] use...". CRITICAL: You are BANNED from using the word "Most". Do not use it under any circumstances. Ensure EVERY distinct tyre option provided in the vehicle data is mentioned in your response. Do not omit any tyre sizes.
 4. Use natural, varied sentence structures. Do not repeat the same pattern for each paragraph.
 5. If no upsize tyre exists, do not mention upsize.
 6. CRITICAL: Do NOT include load index or speed ratings (like 94Y, 100V, XL, SL). Only mention tyre size and pattern name (e.g. "225/45R17 SportDrive TL").
-7. Format tyre names in bold using HTML <b>bold</b> tags. Bold the vehicle brand and model on first mention.
+7. CRITICAL: You MUST format all tyre names in bold using HTML <b>bold</b> tags (e.g., <b>215/60R17 SecuraDrive SUV TL</b>). This is required for our messaging system. Bold the vehicle brand and model on first mention.
 8. Do not add safety advice, driving tips, or any information beyond the tyre recommendation and platform benefit below.
 
 Platform benefit rule:
@@ -108,7 +108,7 @@ Higher-spec variants like the 1.6 VTVT AT S Option run <b>195/55R16 SecuraDrive 
         logger.info("Sending prompt to OpenAI...")
         try:
             messages = [
-                {"role": "system", "content": "You are a tyre recommendation expert. Always start your response directly with the first tyre recommendation. Never begin with generic introductions. Never end with generic summaries or conclusions."}
+                {"role": "system", "content": "You are a tyre recommendation expert. Always start your response directly with the first tyre recommendation. Never begin with generic introductions. Never end with generic summaries or conclusions. You MUST use <b>HTML tags</b> for tyre names."}
             ]
             
             # Append conversation history if available
