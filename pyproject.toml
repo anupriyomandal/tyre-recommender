@@ -1,0 +1,17 @@
+[project]
+name = "tyre-recommender-cli"
+version = "0.1.0"
+description = "Tyre Recommender CLI using FAISS and OpenAI."
+authors = [{name = "Your Name", email = "you@example.com"}]
+dependencies = [
+    "pandas",
+    "sentence-transformers",
+    "faiss-cpu",
+    "typer",
+    "rich",
+    "python-dotenv",
+    "pydantic",
+    "loguru",
+    "openai"
+]
+requires-python = ">=3.11"

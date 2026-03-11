@@ -1,0 +1,9 @@
+pandas
+sentence-transformers
+faiss-cpu
+typer
+rich
+python-dotenv
+pydantic
+loguru
+openai
