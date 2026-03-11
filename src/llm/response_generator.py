@@ -122,16 +122,16 @@ Platform explanation rules:
 
 Example style:
 
-The <b>Hyundai Verna</b> uses different tyre specifications depending on the variant. Models such as 1.6 I ABS, I (Petrol), and 1.6 XI ABS are equipped with <b>185/65R14 Milaze X3 TL</b> tyres, with an optional upsize to <b>185/55R16 SecuraDrive TL</b>.
+For the <b>Hyundai Verna</b> 1.6 I ABS, I (Petrol), and 1.6 XI ABS variants, the recommended tyre is <b>185/65R14 Milaze X3 TL</b>, with an optional upsize to <b>185/55R16 SecuraDrive TL</b>.
 
-Variants including 1.4 VTVT and 1.6 VTVT S use <b>185/65R15 SecuraDrive TL</b>, which can be upsized to <b>195/60R15 SecuraDrive TL</b>. The SecuraDrive platform focuses on strong braking performance and wet grip, helping deliver stable and confident highway driving.
+The 1.4 VTVT and 1.6 VTVT S variants use <b>185/65R15 SecuraDrive TL</b>, which can be upsized to <b>195/60R15 SecuraDrive TL</b>. The SecuraDrive platform focuses on strong braking performance and wet grip, helping deliver stable and confident highway driving.
 
 Higher-spec variants such as 1.6 VTVT AT S Option and 1.6 VTVT S Option are fitted with <b>195/55R16 SecuraDrive TL</b> tyres."""
 
         logger.info("Sending prompt to OpenAI...")
         try:
             messages = [
-                {"role": "system", "content": "You are a helpful tyre recommendation expert."}
+                {"role": "system", "content": "You are a tyre recommendation expert. Always start your response directly with the first tyre recommendation. Never begin with generic introductions. Never end with generic summaries or conclusions."}
             ]
             
             # Append conversation history if available
