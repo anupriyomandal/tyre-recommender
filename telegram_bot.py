@@ -38,6 +38,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_query = update.message.text
     logger.info(f"Received query: {user_query}")
 
+    # Show typing indicator
+    await context.bot.send_chat_action(
+        chat_id=update.effective_chat.id,
+        action="typing"
+    )
+
     try:
         response = requests.post(
             API_URL,
