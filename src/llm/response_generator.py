@@ -81,12 +81,13 @@ Rules:
 5. CRITICAL: Do NOT mention the load index or speed rating in the tyre names (like 94Y, 100V, XL, SL, CALM). Only mention the tyre size and the brand/pattern name (e.g. "225/45R17 SportDrive TL").
 6. Keep the response concise. Do not add general safety advice.
 7. Also do not add any information from your side.
+8. Format tyre names in bold using Markdown **bold** syntax. Also bold the vehicle brand and model name on first mention.
 
 Example style:
 
-The Hyundai Verna uses different tyre specifications depending on the variant. Models such as 1.6 I ABS, I (Petrol), and 1.6 XI ABS are equipped with 185/65R14 Milaze X3 TL tyres, with an optional upsize to 185/55R16 SecuraDrive TL.
-Variants including 1.4 VTVT and 1.6 VTVT S use 185/65R15 SecuraDrive TL, which can be upsized to 195/60R15 SecuraDrive TL.
-Higher-spec variants such as 1.6 VTVT AT S Option and 1.6 VTVT S Option are fitted with 195/55R16 SecuraDrive TL tyres."""
+The **Hyundai Verna** uses different tyre specifications depending on the variant. Models such as 1.6 I ABS, I (Petrol), and 1.6 XI ABS are equipped with **185/65R14 Milaze X3 TL** tyres, with an optional upsize to **185/55R16 SecuraDrive TL**.
+Variants including 1.4 VTVT and 1.6 VTVT S use **185/65R15 SecuraDrive TL**, which can be upsized to **195/60R15 SecuraDrive TL**.
+Higher-spec variants such as 1.6 VTVT AT S Option and 1.6 VTVT S Option are fitted with **195/55R16 SecuraDrive TL** tyres."""
 
         logger.info("Sending prompt to OpenAI...")
         try:
