@@ -57,7 +57,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"API request failed: {e}")
         answer = "⚠️ Sorry, the recommendation service is currently unavailable. Please try again later."
 
-    await update.message.reply_text(answer, parse_mode="Markdown")
+    await update.message.reply_text(answer, parse_mode="HTML")
 
 
 def main():
