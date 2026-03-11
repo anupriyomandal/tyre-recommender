@@ -15,5 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt \
 # Copy the rest of the project
 COPY . .
 
-# Railway injects $PORT at runtime
-CMD uvicorn src.api.server:app --host 0.0.0.0 --port ${PORT:-8000}
+# Make start script executable
+RUN chmod +x start.sh
+
+# Run both API server and Telegram bot
+CMD ["bash", "start.sh"]
