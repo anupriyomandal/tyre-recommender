@@ -12,9 +12,6 @@ __pycache__/
 dist/
 build/
 
-# FAISS index (rebuild with build-index)
-index/
-
 # IDE
 .vscode/
 .idea/
