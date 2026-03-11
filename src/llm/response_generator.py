@@ -77,7 +77,7 @@ Rules:
 
 1. Start directly with the recommendation. No introductions.
 2. End after the last recommendation. No summaries or conclusions.
-3. When many variants share the same tyre, refer to them as a group (e.g. "most variants" or "the base and mid variants") instead of listing every single variant name. Only name specific variants when they differ from the rest.
+3. Group variants logically if they share the same tyre, using natural phrases like "For the base models..." or "Several variants including [A] and [B] use...". Do not overuse the word "Most". CRITICAL: Ensure EVERY distinct tyre option provided in the vehicle data is mentioned in your response. Do not omit any tyre sizes.
 4. Use natural, varied sentence structures. Do not repeat the same pattern for each paragraph.
 5. If no upsize tyre exists, do not mention upsize.
 6. CRITICAL: Do NOT include load index or speed ratings (like 94Y, 100V, XL, SL). Only mention tyre size and pattern name (e.g. "225/45R17 SportDrive TL").
@@ -99,7 +99,7 @@ Platforms:
 
 Example:
 
-Most <b>Hyundai Verna</b> variants — including the 1.6 I ABS, I (Petrol), and 1.6 XI ABS — come fitted with <b>185/65R14 Milaze X3 TL</b>, a mileage-focused tyre built for reliable everyday use. An upsize to <b>185/55R16 SecuraDrive TL</b> is available for those looking for better wet grip and braking.
+Several <b>Hyundai Verna</b> variants — including the 1.6 I ABS, I (Petrol), and 1.6 XI ABS — come fitted with <b>185/65R14 Milaze X3 TL</b>, a mileage-focused tyre built for reliable everyday use. An upsize to <b>185/55R16 SecuraDrive TL</b> is available for those looking for better wet grip and braking.
 
 The 1.4 VTVT and 1.6 VTVT S use <b>185/65R15 SecuraDrive TL</b>, with an upsize option to <b>195/60R15 SecuraDrive TL</b>.
 
