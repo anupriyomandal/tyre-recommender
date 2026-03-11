@@ -83,6 +83,8 @@ Rules:
 6. Keep the response concise. Do not add general safety advice.
 7. Do not add any information beyond the tyre recommendation and the platform benefit explained below.
 8. Format tyre names in bold using HTML <b>bold</b> tags. Also bold the vehicle brand and model name on first mention.
+9. Do NOT start with a generic introductory sentence like "The Hyundai EON has specific tyre requirements based on its variants." Jump straight into the recommendation.
+10. Do NOT end with a generic summary or conclusion like "In summary, the vehicle offers tailored tyre options..." End after the last recommendation.
 
 Platform benefit rule:
 
@@ -142,7 +144,7 @@ Higher-spec variants such as 1.6 VTVT AT S Option and 1.6 VTVT S Option are fitt
             response = client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                temperature=1
+                temperature=0.3
             )
             answer = response.choices[0].message.content.strip()
             logger.info("Received generated response.")
