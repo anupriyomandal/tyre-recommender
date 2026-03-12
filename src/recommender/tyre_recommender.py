@@ -47,7 +47,7 @@ class TyreRecommender:
     def __init__(self, index_path: Path | str, metadata_path: Path | str):
         self.vector_search = VectorSearch(index_path, metadata_path)
         self.response_generator = ResponseGenerator()
-        self.unknown_answer = "Sorry, I don't know that"
+        self.unknown_answer = "I don't exactly know"
         self.bm25_min_score = BM25_MIN_SCORE
         self.overlap_threshold_short = OVERLAP_THRESHOLD_SHORT_QUERY
         self.overlap_threshold_medium = OVERLAP_THRESHOLD_MEDIUM_QUERY
@@ -65,6 +65,49 @@ class TyreRecommender:
         if token_count <= 5:
             return self.overlap_threshold_medium
         return self.overlap_threshold_long
+
+    def _query_is_brand_only_ambiguous(self, query: str, vehicle_rows: list[dict]) -> bool:
+        query_tokens = set(self._tokenize(query))
+        if not query_tokens:
+            return False
+
+        # Focus on top-ranked rows to infer ambiguity.
+        top_rows = vehicle_rows[:10]
+
+        matched_brand_rows: list[dict] = []
+        model_matched = False
+
+        for row in top_rows:
+            brand_tokens = set(self._tokenize(str(row.get("vehicle-brand", ""))))
+            model_tokens = set(self._tokenize(str(row.get("vehicle-model", ""))))
+
+            if query_tokens.intersection(brand_tokens):
+                matched_brand_rows.append(row)
+
+            if query_tokens.intersection(model_tokens):
+                model_matched = True
+
+        if not matched_brand_rows or model_matched:
+            return False
+
+        distinct_models = {
+            str(row.get("vehicle-model", "")).strip().lower()
+            for row in matched_brand_rows
+            if str(row.get("vehicle-model", "")).strip()
+        }
+
+        # Brand mentioned but model absent while multiple models are possible.
+        return len(distinct_models) > 1
+
+    def _normalize_unknown_answer(self, answer: str) -> str:
+        normalized = answer.strip().lower().rstrip(".!")
+        if normalized in {
+            "i don't exactly know",
+            "sorry, i don't know that",
+            "i dont exactly know",
+        }:
+            return self.unknown_answer
+        return answer
 
     def _has_strong_context_match(self, query: str, vehicle_rows: list[dict]) -> bool:
         if not vehicle_rows:
@@ -112,13 +155,16 @@ class TyreRecommender:
         if not self._has_strong_context_match(search_query, vehicle_rows):
             logger.info("No sufficiently relevant context found. Returning unknown answer.")
             return self.unknown_answer
+        if self._query_is_brand_only_ambiguous(search_query, vehicle_rows):
+            logger.info("Brand-only ambiguous query detected. Returning unknown answer.")
+            return self.unknown_answer
 
         # 3 & 4. Generate and return natural language answer
         try:
             answer = self.response_generator.generate(query, vehicle_rows, history=history)
             if not answer or not answer.strip():
                 return self.unknown_answer
-            return answer
+            return self._normalize_unknown_answer(answer)
         except Exception as e:
             logger.error(f"Response generation failed: {e}")
             return f"Error creating recommendation: {e}"

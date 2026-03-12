@@ -17,7 +17,7 @@ class ResponseGenerator:
     """
     def __init__(self, model: str = "gpt-4o-mini"):
         self.model = model
-        self.unknown_answer = "Sorry, I don't know that"
+        self.unknown_answer = "I don't exactly know"
 
     def generate(self, query: str, vehicle_rows: list[dict], history: list[dict] | None = None) -> str:
         """
@@ -84,7 +84,7 @@ Rules:
 6. CRITICAL: Do NOT include load index or speed ratings (like 94Y, 100V, XL, SL). Only mention tyre size and pattern name (e.g. "225/45R17 SportDrive TL").
 7. CRITICAL: You MUST format all tyre names in bold using HTML <b>bold</b> tags (e.g., <b>215/60R17 SecuraDrive SUV TL</b>). You are BANNED from using Markdown asterisks (**). Do not use **bold** under any circumstances. Bold the vehicle brand and model on first mention.
 8. Do not add safety advice, driving tips, or any information beyond the tyre recommendation and platform benefit below.
-9. Use only the provided vehicle data. If the query cannot be answered strictly from this data, reply with exactly: Sorry, I don't know that
+9. Use only the provided vehicle data. If the query cannot be answered strictly from this data, reply with exactly: I don't exactly know
 
 Platform benefit rule:
 
@@ -110,7 +110,7 @@ Higher-spec variants like the 1.6 VTVT AT S Option run <b>195/55R16 SecuraDrive 
         logger.info("Sending prompt to OpenAI...")
         try:
             messages = [
-                {"role": "system", "content": "You are a tyre recommendation expert. Use only provided context rows. If context is insufficient for the query, respond exactly with: Sorry, I don't know that. Always start your response directly with the first tyre recommendation. Never begin with generic introductions. Never end with generic summaries or conclusions. You MUST use <b>HTML tags</b> for tyre names."}
+                {"role": "system", "content": "You are a tyre recommendation expert. Use only provided context rows. If context is insufficient for the query, respond exactly with: I don't exactly know. Always start your response directly with the first tyre recommendation. Never begin with generic introductions. Never end with generic summaries or conclusions. You MUST use <b>HTML tags</b> for tyre names."}
             ]
             
             # Append conversation history if available
