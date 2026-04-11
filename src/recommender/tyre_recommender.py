@@ -300,12 +300,16 @@ class TyreRecommender:
         if self._is_thanks_or_closing(query) and not history:
             return "You're welcome! Feel free to ask if you need tyre recommendations for any other vehicle."
 
-        # Build search query: for follow-ups, combine with previous user query
+        # Build search query: for follow-ups, combine with up to the last 3 user
+        # messages so that vehicle names mentioned several turns ago are not lost.
+        # Example: "tyre for verna" → "what options?" → "the SX one" — without
+        # the lookback, "verna" disappears from the search context by turn 3.
         search_query = query
         if history:
             previous_user_msgs = [m["content"] for m in history if m["role"] == "user"]
             if previous_user_msgs:
-                search_query = f"{previous_user_msgs[-1]} {query}"
+                context_msgs = previous_user_msgs[-3:]  # last 3 user turns for context
+                search_query = f"{' '.join(context_msgs)} {query}"
 
         logger.info(f"Starting recommendation workflow for query: '{query}' (search: '{search_query}')")
 
