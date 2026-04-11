@@ -394,16 +394,6 @@ class TyreRecommender:
             logger.info("Brand-only ambiguous query detected. Returning model clarification.")
             return self._get_brand_clarification(query, vehicle_rows)
 
-        has_history = bool(history)
-
-        if vehicle_rows and self._is_variant_listing_query(query, vehicle_rows, has_history=has_history):
-            logger.info("Variant listing query detected. Returning full variant list.")
-            return self._get_variant_list_response(query, vehicle_rows)
-
-        if vehicle_rows and self._query_is_variant_ambiguous(query, vehicle_rows, has_history=has_history):
-            logger.info("Variant-ambiguous query detected. Returning variant clarification.")
-            return self._get_variant_clarification(query, vehicle_rows)
-
         has_match = self._has_strong_context_match(search_query, vehicle_rows)
 
         if not has_match:
