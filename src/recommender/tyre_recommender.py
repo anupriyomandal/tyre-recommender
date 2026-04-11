@@ -126,10 +126,19 @@ class TyreRecommender:
             return f"Which {brand_name} model are you looking for? Please provide the model name."
         return "Could you tell me the make and model of your vehicle?"
 
-    # Keywords that signal the user wants a list of variants, not a tyre recommendation
+    # Keywords that signal the user wants a list of variants, not a tyre recommendation.
+    # NOTE: "all" alone is too broad — "tyre for all variants" is a tyre query, not a
+    # listing query.  Keep this set narrow to avoid false positives.
     _VARIANT_LIST_KEYWORDS = {
         "variants", "versions", "options", "trims", "trim",
-        "available", "types", "different", "all",
+        "available", "types", "different",
+    }
+
+    # If ANY of these words appear alongside a listing keyword, the user is asking
+    # for tyre info, not a variant list — skip the listing branch entirely.
+    _TYRE_INTENT_KEYWORDS = {
+        "tyre", "tyres", "tire", "tires", "recommended", "recommend",
+        "suggestion", "suggest", "fitted", "fit", "suitable",
     }
 
     def _collect_model_rows(
@@ -169,10 +178,18 @@ class TyreRecommender:
         return []
 
     def _is_variant_listing_query(self, query: str, vehicle_rows: list[dict], has_history: bool = False) -> bool:
-        """True if the user is asking 'what variants / all versions' style question."""
+        """True if the user is asking 'what variants / all versions' style question.
+
+        Returns False when the query also contains tyre-intent words (e.g.
+        "what is the recommended tyre for all of these variants") — that is a
+        tyre recommendation request, not a variant listing request.
+        """
         raw_tokens = set(re.findall(r"[a-z]+", query.lower()))
-        # Must contain at least one variant-listing keyword (raw, not stopword-filtered)
+        # Must contain at least one variant-listing keyword
         if not raw_tokens.intersection(self._VARIANT_LIST_KEYWORDS):
+            return False
+        # If the user is also asking about tyres, this is a tyre query, not a listing
+        if raw_tokens.intersection(self._TYRE_INTENT_KEYWORDS):
             return False
         # Must be able to resolve a vehicle — either by name in query or via history context
         return bool(self._collect_model_rows(query, vehicle_rows, use_top_fallback=has_history))
@@ -213,13 +230,29 @@ class TyreRecommender:
         """True if the token looks like a 4-digit manufacturing year (1900-2099)."""
         return bool(re.match(r"^(19|20)\d{2}$", token))
 
+    # Words that signal the user explicitly wants ALL variants — skip the ambiguity
+    # clarification and let the LLM answer with the full tyre breakdown.
+    _ALL_VARIANTS_KEYWORDS = {"all", "every", "each", "these"}
+
     def _query_is_variant_ambiguous(self, query: str, vehicle_rows: list[dict], has_history: bool = False) -> bool:
         """True if model is matched, no variant is specified in query, and ≥3 distinct tyre groups exist.
+
+        Returns False when the user explicitly asks for ALL variants (e.g.
+        "tell me for all variants", "what is the tyre for all of these") —
+        in that case the LLM should answer with the full tyre breakdown.
 
         Manufacturing years (e.g. '2005', '2019') are treated as neutral — they do NOT
         count as a variant match.  When `has_history` is True and the query has no model
         name, the top vehicle row is used as the subject (context carry-over).
         """
+        # If user explicitly asks for ALL variants, don't ask for clarification —
+        # let the LLM provide the full tyre breakdown.
+        raw_tokens = set(re.findall(r"[a-z]+", query.lower()))
+        if raw_tokens.intersection(self._ALL_VARIANTS_KEYWORDS) and raw_tokens.intersection(
+            self._VARIANT_LIST_KEYWORDS | {"variant", "version"}
+        ):
+            return False
+
         non_year_tokens = {t for t in self._tokenize(query) if not self._is_year_token(t)}
 
         matched_model_rows = self._collect_model_rows(query, vehicle_rows, use_top_fallback=has_history)
