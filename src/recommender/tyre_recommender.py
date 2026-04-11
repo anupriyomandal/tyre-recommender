@@ -316,20 +316,29 @@ class TyreRecommender:
             logger.error(f"Search failed: {e}")
             return f"Error during search: {e}"
 
+        # Intent detection always uses the CURRENT user message (`query`), NOT the
+        # combined `search_query`.  The combined string is only for vector retrieval —
+        # using it for intent would bleed keywords from a previous turn into the current
+        # intent classifier (e.g. "variants" from a prior listing question would keep
+        # re-triggering the variant-listing branch on every follow-up).
+        #
+        # Response builders also receive `query` so model-matching uses the current
+        # message; `vehicle_rows` already carry the right candidates from `search_query`.
+
         # Check brand-only ambiguity FIRST — before the context match gate —
         # so "what's the tyre for Audi" always gets a model clarification
         # regardless of whether the similarity score crosses the threshold.
-        if vehicle_rows and self._query_is_brand_only_ambiguous(search_query, vehicle_rows):
+        if vehicle_rows and self._query_is_brand_only_ambiguous(query, vehicle_rows):
             logger.info("Brand-only ambiguous query detected. Returning model clarification.")
-            return self._get_brand_clarification(search_query, vehicle_rows)
+            return self._get_brand_clarification(query, vehicle_rows)
 
-        if vehicle_rows and self._is_variant_listing_query(search_query, vehicle_rows):
+        if vehicle_rows and self._is_variant_listing_query(query, vehicle_rows):
             logger.info("Variant listing query detected. Returning full variant list.")
-            return self._get_variant_list_response(search_query, vehicle_rows)
+            return self._get_variant_list_response(query, vehicle_rows)
 
-        if vehicle_rows and self._query_is_variant_ambiguous(search_query, vehicle_rows):
+        if vehicle_rows and self._query_is_variant_ambiguous(query, vehicle_rows):
             logger.info("Variant-ambiguous query detected. Returning variant clarification.")
-            return self._get_variant_clarification(search_query, vehicle_rows)
+            return self._get_variant_clarification(query, vehicle_rows)
 
         has_match = self._has_strong_context_match(search_query, vehicle_rows)
 
