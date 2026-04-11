@@ -121,7 +121,7 @@ class VectorSearch:
         faiss.normalize_L2(query_embedding)
 
         # 2. Search FAISS index for a larger candidate pool
-        candidate_k = min(max(k * 5, k), self.indexer.index.ntotal)
+        candidate_k = min(max(k * 10, k), self.indexer.index.ntotal)
         logger.info(f"Finding top {candidate_k} vector candidates in index...")
         distances, indices = self.indexer.index.search(query_embedding, candidate_k)
 
@@ -157,7 +157,29 @@ class VectorSearch:
             reverse=True,
         )
 
-        # 4. Return reranked top-k rows
-        results = candidates[:k]
-        logger.info(f"Found {len(results)} matching records.")
+        # 4. Select top-k distinct tyre groups, then return ALL rows that belong
+        #    to those groups so the LLM sees every variant — not just one per group.
+        def _group_key(row: dict) -> tuple:
+            return (
+                str(row.get("vehicle-brand", "")).strip().lower(),
+                str(row.get("vehicle-model", "")).strip().lower(),
+                str(row.get("recommended-sku.1", row.get("recommended-tyre", ""))).strip().lower(),
+            )
+
+        # Walk the ranked list and collect the first k unique groups (in rank order)
+        selected_groups: list[tuple] = []
+        seen_groups: set[tuple] = set()
+        for row in candidates:
+            gk = _group_key(row)
+            if gk not in seen_groups:
+                seen_groups.add(gk)
+                selected_groups.append(gk)
+            if len(selected_groups) >= k:
+                break
+
+        selected_set = set(selected_groups)
+
+        # Return every candidate row whose group is in the selected set
+        results = [row for row in candidates if _group_key(row) in selected_set]
+        logger.info(f"Found {len(results)} rows across {len(selected_groups)} tyre groups ({len(candidates)} raw candidates).")
         return results
