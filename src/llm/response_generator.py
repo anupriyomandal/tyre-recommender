@@ -43,7 +43,7 @@ class ResponseGenerator:
     """
     Converts retrieved vehicle rows into a natural language recommendation using LLM.
     """
-    def __init__(self, model: str = "gpt-4o-mini"):
+    def __init__(self, model: str = "gpt-4.5-mini"):
         self.model = model
         self.unknown_answer = "I don't exactly know"
 
