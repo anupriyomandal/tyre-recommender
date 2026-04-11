@@ -126,6 +126,71 @@ class TyreRecommender:
             return f"Which {brand_name} model are you looking for? Please provide the model name."
         return "Could you tell me the make and model of your vehicle?"
 
+    def _query_is_variant_ambiguous(self, query: str, vehicle_rows: list[dict]) -> bool:
+        """True if model is matched, no variant is specified in query, and ≥3 distinct tyre groups exist."""
+        query_tokens = set(self._tokenize(query))
+        if not query_tokens:
+            return False
+
+        matched_model_rows: list[dict] = []
+        variant_matched = False
+
+        for row in vehicle_rows[:20]:
+            model_tokens = set(self._tokenize(str(row.get("vehicle-model", ""))))
+            variant_tokens = set(self._tokenize(str(row.get("vehicle-variant", ""))))
+
+            if query_tokens.intersection(model_tokens):
+                matched_model_rows.append(row)
+                if query_tokens.intersection(variant_tokens):
+                    variant_matched = True
+
+        if not matched_model_rows or variant_matched:
+            return False
+
+        # Count distinct recommended tyre groups
+        distinct_tyres = {
+            str(row.get("recommended-sku.1", row.get("recommended-tyre", ""))).strip().lower()
+            for row in matched_model_rows
+            if str(row.get("recommended-sku.1", row.get("recommended-tyre", ""))).strip()
+            not in ("", "nan", "#n/a", "na")
+        }
+        return len(distinct_tyres) >= 3
+
+    def _get_variant_clarification(self, query: str, vehicle_rows: list[dict]) -> str:
+        """Return a clarification message listing available variants for the detected model."""
+        query_tokens = set(self._tokenize(query))
+        brand_name = None
+        model_name = None
+        variants: list[str] = []
+
+        for row in vehicle_rows[:20]:
+            brand = str(row.get("vehicle-brand", "")).strip()
+            model = str(row.get("vehicle-model", "")).strip()
+            variant = str(row.get("vehicle-variant", "")).strip()
+
+            model_tokens = set(self._tokenize(model))
+            if not query_tokens.intersection(model_tokens):
+                continue
+
+            if brand_name is None:
+                brand_name = brand.title()
+            if model_name is None:
+                model_name = model.title()
+
+            if variant and variant not in ("NA", "None", "", "nan") and variant.upper() not in [v.upper() for v in variants]:
+                variants.append(variant.title())
+
+        variants = variants[:6]
+        if brand_name and model_name and variants:
+            variant_list = ", ".join(variants)
+            return (
+                f"The {brand_name} {model_name} has multiple tyre options depending on the variant. "
+                f"Which variant do you have? For example: {variant_list}."
+            )
+        elif brand_name and model_name:
+            return f"The {brand_name} {model_name} has multiple variants with different tyre sizes. Could you tell me your specific variant?"
+        return "This vehicle has multiple variants with different tyre sizes. Could you tell me your specific variant?"
+
     def _normalize_unknown_answer(self, answer: str) -> str:
         normalized = answer.strip().lower().rstrip(".!")
         if normalized in {
@@ -189,6 +254,10 @@ class TyreRecommender:
         if vehicle_rows and self._query_is_brand_only_ambiguous(search_query, vehicle_rows):
             logger.info("Brand-only ambiguous query detected. Returning model clarification.")
             return self._get_brand_clarification(search_query, vehicle_rows)
+
+        if vehicle_rows and self._query_is_variant_ambiguous(search_query, vehicle_rows):
+            logger.info("Variant-ambiguous query detected. Returning variant clarification.")
+            return self._get_variant_clarification(search_query, vehicle_rows)
 
         has_match = self._has_strong_context_match(search_query, vehicle_rows)
 
