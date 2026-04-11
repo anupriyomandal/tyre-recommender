@@ -126,6 +126,60 @@ class TyreRecommender:
             return f"Which {brand_name} model are you looking for? Please provide the model name."
         return "Could you tell me the make and model of your vehicle?"
 
+    # Keywords that signal the user wants a list of variants, not a tyre recommendation
+    _VARIANT_LIST_KEYWORDS = {
+        "variants", "versions", "options", "trims", "trim",
+        "available", "types", "different", "all",
+    }
+
+    def _is_variant_listing_query(self, query: str, vehicle_rows: list[dict]) -> bool:
+        """True if the user is asking 'what variants does X have?' style question."""
+        raw_tokens = set(re.findall(r"[a-z]+", query.lower()))
+        # Must contain at least one variant-listing keyword (raw, not stopword-filtered)
+        if not raw_tokens.intersection(self._VARIANT_LIST_KEYWORDS):
+            return False
+        # Must also match a model in the results
+        query_tokens = set(self._tokenize(query))
+        for row in vehicle_rows[:20]:
+            model_tokens = set(self._tokenize(str(row.get("vehicle-model", ""))))
+            if query_tokens.intersection(model_tokens):
+                return True
+        return False
+
+    def _get_variant_list_response(self, query: str, vehicle_rows: list[dict]) -> str:
+        """Return a message listing all known variants for the matched model."""
+        query_tokens = set(self._tokenize(query))
+        brand_name = None
+        model_name = None
+        variants: list[str] = []
+
+        for row in vehicle_rows[:20]:
+            brand = str(row.get("vehicle-brand", "")).strip()
+            model = str(row.get("vehicle-model", "")).strip()
+            variant = str(row.get("vehicle-variant", "")).strip()
+
+            model_tokens = set(self._tokenize(model))
+            if not query_tokens.intersection(model_tokens):
+                continue
+
+            if brand_name is None:
+                brand_name = brand.title()
+            if model_name is None:
+                model_name = model.title()
+
+            if variant and variant not in ("NA", "None", "", "nan") and variant.upper() not in [v.upper() for v in variants]:
+                variants.append(variant.title())
+
+        if brand_name and model_name and variants:
+            variant_lines = "".join(f"<br>• {v}" for v in variants)
+            return (
+                f"The <b>{brand_name} {model_name}</b> is available in the following variants:{variant_lines}<br><br>"
+                f"Which variant do you have? I'll suggest the right tyres for it."
+            )
+        elif brand_name and model_name:
+            return f"I have tyre data for the {brand_name} {model_name}, but variant information isn't detailed enough. Could you tell me your specific variant?"
+        return "Could you tell me the make and model of your vehicle so I can list its variants?"
+
     def _query_is_variant_ambiguous(self, query: str, vehicle_rows: list[dict]) -> bool:
         """True if model is matched, no variant is specified in query, and ≥3 distinct tyre groups exist."""
         query_tokens = set(self._tokenize(query))
@@ -254,6 +308,10 @@ class TyreRecommender:
         if vehicle_rows and self._query_is_brand_only_ambiguous(search_query, vehicle_rows):
             logger.info("Brand-only ambiguous query detected. Returning model clarification.")
             return self._get_brand_clarification(search_query, vehicle_rows)
+
+        if vehicle_rows and self._is_variant_listing_query(search_query, vehicle_rows):
+            logger.info("Variant listing query detected. Returning full variant list.")
+            return self._get_variant_list_response(search_query, vehicle_rows)
 
         if vehicle_rows and self._query_is_variant_ambiguous(search_query, vehicle_rows):
             logger.info("Variant-ambiguous query detected. Returning variant clarification.")
