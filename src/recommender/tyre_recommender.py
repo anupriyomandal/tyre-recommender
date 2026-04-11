@@ -14,30 +14,22 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 STOPWORDS = {
-    "a",
-    "an",
-    "and",
-    "are",
-    "for",
-    "from",
-    "i",
-    "in",
-    "is",
-    "me",
-    "my",
-    "of",
-    "on",
-    "or",
-    "please",
-    "show",
-    "tell",
-    "the",
-    "to",
-    "tyre",
-    "tyres",
-    "what",
-    "which",
-    "with",
+    # articles / prepositions
+    "a", "an", "and", "are", "at", "by", "for", "from", "in", "is",
+    "of", "on", "or", "the", "to", "with",
+    # pronouns
+    "i", "me", "my", "its", "it",
+    # common conversational filler (never in vehicle records)
+    "have", "has", "do", "does", "can", "could", "would", "should",
+    "get", "give", "know", "tell", "show", "please",
+    "want", "need", "looking", "find", "suggest", "recommend", "recommended",
+    "which", "what", "how", "who",
+    # tyre-query filler words (intent words, not record fields)
+    "tyre", "tyres", "tire", "tires",
+    "size", "version", "variant", "model",
+    "right", "best", "good", "first", "second",
+    "fit", "fits", "fitted", "suitable",
+    "use", "using", "used",
 }
 
 GREETINGS = {"hello", "hi", "hey", "howdy", "greetings", "hiya"}
@@ -58,6 +50,8 @@ class TyreRecommender:
         self.vector_similarity_min = VECTOR_SIMILARITY_MIN
 
     def _tokenize(self, text: str) -> list[str]:
+        # Normalise Unicode multiplication sign (×) to ASCII x so "2×4" → "2x4"
+        text = text.replace("\u00d7", "x")
         tokens = re.findall(r"[a-z0-9]+", text.lower())
         return [token for token in tokens if len(token) > 1 and token not in STOPWORDS]
 

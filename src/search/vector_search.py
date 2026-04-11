@@ -9,30 +9,22 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 STOPWORDS = {
-    "a",
-    "an",
-    "and",
-    "are",
-    "for",
-    "from",
-    "i",
-    "in",
-    "is",
-    "me",
-    "my",
-    "of",
-    "on",
-    "or",
-    "please",
-    "show",
-    "tell",
-    "the",
-    "to",
-    "tyre",
-    "tyres",
-    "what",
-    "which",
-    "with",
+    # articles / prepositions
+    "a", "an", "and", "are", "at", "by", "for", "from", "in", "is",
+    "of", "on", "or", "the", "to", "with",
+    # pronouns
+    "i", "me", "my", "its", "it",
+    # common conversational filler (never in vehicle records)
+    "have", "has", "do", "does", "can", "could", "would", "should",
+    "get", "give", "know", "tell", "show", "please",
+    "want", "need", "looking", "find", "suggest", "recommend", "recommended",
+    "which", "what", "how", "who",
+    # tyre-query filler words (intent words, not record fields)
+    "tyre", "tyres", "tire", "tires",
+    "size", "version", "variant", "model",
+    "right", "best", "good", "first", "second",
+    "fit", "fits", "fitted", "suitable",
+    "use", "using", "used",
 }
 
 class VectorSearch:
@@ -46,6 +38,8 @@ class VectorSearch:
         self.indexer.load_index(index_path, metadata_path)
 
     def _tokenize(self, text: str) -> list[str]:
+        # Normalise Unicode multiplication sign (×) to ASCII x so "2×4" → "2x4"
+        text = text.replace("\u00d7", "x")
         tokens = re.findall(r"[a-z0-9]+", text.lower())
         return [token for token in tokens if len(token) > 1 and token not in STOPWORDS]
 
@@ -148,9 +142,13 @@ class VectorSearch:
         for i, score in enumerate(bm25_scores):
             candidates[i]["bm25_score"] = float(score)
 
+        # Sort by overlap first (exact brand/model keyword match),
+        # then by semantic similarity as tiebreaker.
+        # BM25 is kept for _has_strong_context_match gating but NOT used
+        # as a primary sort key — it can misfire when year tokens (e.g. "2017")
+        # match unrelated vehicles with that year in their manufacturing range.
         candidates.sort(
             key=lambda item: (
-                item.get("bm25_score", 0.0),
                 item.get("token_overlap", 0.0),
                 item.get("similarity_score", 0.0),
             ),
