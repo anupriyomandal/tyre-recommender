@@ -138,8 +138,8 @@ class TyreRecommender:
         # Must contain at least one variant-listing keyword (raw, not stopword-filtered)
         if not raw_tokens.intersection(self._VARIANT_LIST_KEYWORDS):
             return False
-        # Must also match a model in the results
-        query_tokens = set(self._tokenize(query))
+        # Must also match a model in the results (years in the query are fine and ignored here)
+        query_tokens = {t for t in self._tokenize(query) if not self._is_year_token(t)}
         for row in vehicle_rows[:20]:
             model_tokens = set(self._tokenize(str(row.get("vehicle-model", ""))))
             if query_tokens.intersection(model_tokens):
@@ -180,11 +180,24 @@ class TyreRecommender:
             return f"I have tyre data for the {brand_name} {model_name}, but variant information isn't detailed enough. Could you tell me your specific variant?"
         return "Could you tell me the make and model of your vehicle so I can list its variants?"
 
+    @staticmethod
+    def _is_year_token(token: str) -> bool:
+        """True if the token looks like a 4-digit manufacturing year (1900-2099)."""
+        return bool(re.match(r"^(19|20)\d{2}$", token))
+
     def _query_is_variant_ambiguous(self, query: str, vehicle_rows: list[dict]) -> bool:
-        """True if model is matched, no variant is specified in query, and ≥3 distinct tyre groups exist."""
+        """True if model is matched, no variant is specified in query, and ≥3 distinct tyre groups exist.
+
+        Manufacturing years in the query (e.g. '2005', '2019') are treated as neutral
+        identifiers — they do NOT count as a variant match, because a year does not
+        uniquely identify a trim/variant.
+        """
         query_tokens = set(self._tokenize(query))
         if not query_tokens:
             return False
+
+        # Strip year tokens before checking variant matches — years are not variants
+        non_year_tokens = {t for t in query_tokens if not self._is_year_token(t)}
 
         matched_model_rows: list[dict] = []
         variant_matched = False
@@ -195,7 +208,8 @@ class TyreRecommender:
 
             if query_tokens.intersection(model_tokens):
                 matched_model_rows.append(row)
-                if query_tokens.intersection(variant_tokens):
+                # Only count as variant-matched if a non-year token matches a variant token
+                if non_year_tokens and non_year_tokens.intersection(variant_tokens):
                     variant_matched = True
 
         if not matched_model_rows or variant_matched:
