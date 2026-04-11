@@ -189,6 +189,13 @@ class TyreRecommender:
             logger.error(f"Search failed: {e}")
             return f"Error during search: {e}"
 
+        # Check brand-only ambiguity FIRST — before the context match gate —
+        # so "what's the tyre for Audi" always gets a model clarification
+        # regardless of whether the similarity score crosses the threshold.
+        if vehicle_rows and self._query_is_brand_only_ambiguous(search_query, vehicle_rows):
+            logger.info("Brand-only ambiguous query detected. Returning model clarification.")
+            return self._get_brand_clarification(search_query, vehicle_rows)
+
         has_match = self._has_strong_context_match(search_query, vehicle_rows)
 
         if not has_match:
@@ -204,10 +211,6 @@ class TyreRecommender:
             # No vehicle data and no history — give a helpful redirect
             logger.info("No sufficiently relevant context found. Returning helpful redirect.")
             return "I can help you find the right tyres. Please share the make and model of your vehicle (e.g. Honda City, Maruti Swift, Toyota Fortuner)."
-
-        if self._query_is_brand_only_ambiguous(search_query, vehicle_rows):
-            logger.info("Brand-only ambiguous query detected. Returning model clarification.")
-            return self._get_brand_clarification(search_query, vehicle_rows)
 
         # Filter to only rows that match the top-ranked brand+model to avoid
         # passing unrelated vehicles to the LLM when k=20 brings in noise.
