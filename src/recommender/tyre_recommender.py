@@ -132,35 +132,63 @@ class TyreRecommender:
         "available", "types", "different", "all",
     }
 
-    def _is_variant_listing_query(self, query: str, vehicle_rows: list[dict]) -> bool:
-        """True if the user is asking 'what variants does X have?' style question."""
+    def _collect_model_rows(
+        self,
+        query: str,
+        vehicle_rows: list[dict],
+        use_top_fallback: bool = False,
+    ) -> list[dict]:
+        """Return vehicle rows that match the model named in `query`.
+
+        When `use_top_fallback` is True and the current query contains no model
+        name (e.g. "tell me for all the versions"), fall back to the brand+model
+        of the top-ranked row — which was retrieved using the history-augmented
+        search query and therefore already reflects the correct vehicle.
+        """
+        query_tokens = {t for t in self._tokenize(query) if not self._is_year_token(t)}
+
+        matched: list[dict] = []
+        for row in vehicle_rows[:20]:
+            model_tokens = set(self._tokenize(str(row.get("vehicle-model", ""))))
+            if query_tokens.intersection(model_tokens):
+                matched.append(row)
+
+        if matched:
+            return matched
+
+        # Fallback: no model name in current query — use the top vehicle row's brand+model
+        if use_top_fallback and vehicle_rows:
+            top_brand = str(vehicle_rows[0].get("vehicle-brand", "")).strip().lower()
+            top_model = str(vehicle_rows[0].get("vehicle-model", "")).strip().lower()
+            return [
+                r for r in vehicle_rows[:20]
+                if str(r.get("vehicle-brand", "")).strip().lower() == top_brand
+                and str(r.get("vehicle-model", "")).strip().lower() == top_model
+            ]
+
+        return []
+
+    def _is_variant_listing_query(self, query: str, vehicle_rows: list[dict], has_history: bool = False) -> bool:
+        """True if the user is asking 'what variants / all versions' style question."""
         raw_tokens = set(re.findall(r"[a-z]+", query.lower()))
         # Must contain at least one variant-listing keyword (raw, not stopword-filtered)
         if not raw_tokens.intersection(self._VARIANT_LIST_KEYWORDS):
             return False
-        # Must also match a model in the results (years in the query are fine and ignored here)
-        query_tokens = {t for t in self._tokenize(query) if not self._is_year_token(t)}
-        for row in vehicle_rows[:20]:
-            model_tokens = set(self._tokenize(str(row.get("vehicle-model", ""))))
-            if query_tokens.intersection(model_tokens):
-                return True
-        return False
+        # Must be able to resolve a vehicle — either by name in query or via history context
+        return bool(self._collect_model_rows(query, vehicle_rows, use_top_fallback=has_history))
 
     def _get_variant_list_response(self, query: str, vehicle_rows: list[dict]) -> str:
         """Return a message listing all known variants for the matched model."""
-        query_tokens = set(self._tokenize(query))
+        model_rows = self._collect_model_rows(query, vehicle_rows, use_top_fallback=True)
+
         brand_name = None
         model_name = None
         variants: list[str] = []
 
-        for row in vehicle_rows[:20]:
+        for row in model_rows:
             brand = str(row.get("vehicle-brand", "")).strip()
             model = str(row.get("vehicle-model", "")).strip()
             variant = str(row.get("vehicle-variant", "")).strip()
-
-            model_tokens = set(self._tokenize(model))
-            if not query_tokens.intersection(model_tokens):
-                continue
 
             if brand_name is None:
                 brand_name = brand.title()
@@ -185,34 +213,28 @@ class TyreRecommender:
         """True if the token looks like a 4-digit manufacturing year (1900-2099)."""
         return bool(re.match(r"^(19|20)\d{2}$", token))
 
-    def _query_is_variant_ambiguous(self, query: str, vehicle_rows: list[dict]) -> bool:
+    def _query_is_variant_ambiguous(self, query: str, vehicle_rows: list[dict], has_history: bool = False) -> bool:
         """True if model is matched, no variant is specified in query, and ≥3 distinct tyre groups exist.
 
-        Manufacturing years in the query (e.g. '2005', '2019') are treated as neutral
-        identifiers — they do NOT count as a variant match, because a year does not
-        uniquely identify a trim/variant.
+        Manufacturing years (e.g. '2005', '2019') are treated as neutral — they do NOT
+        count as a variant match.  When `has_history` is True and the query has no model
+        name, the top vehicle row is used as the subject (context carry-over).
         """
-        query_tokens = set(self._tokenize(query))
-        if not query_tokens:
+        non_year_tokens = {t for t in self._tokenize(query) if not self._is_year_token(t)}
+
+        matched_model_rows = self._collect_model_rows(query, vehicle_rows, use_top_fallback=has_history)
+        if not matched_model_rows:
             return False
 
-        # Strip year tokens before checking variant matches — years are not variants
-        non_year_tokens = {t for t in query_tokens if not self._is_year_token(t)}
-
-        matched_model_rows: list[dict] = []
+        # Check whether any non-year query token matches a variant token
         variant_matched = False
-
-        for row in vehicle_rows[:20]:
-            model_tokens = set(self._tokenize(str(row.get("vehicle-model", ""))))
+        for row in matched_model_rows:
             variant_tokens = set(self._tokenize(str(row.get("vehicle-variant", ""))))
+            if non_year_tokens and non_year_tokens.intersection(variant_tokens):
+                variant_matched = True
+                break
 
-            if query_tokens.intersection(model_tokens):
-                matched_model_rows.append(row)
-                # Only count as variant-matched if a non-year token matches a variant token
-                if non_year_tokens and non_year_tokens.intersection(variant_tokens):
-                    variant_matched = True
-
-        if not matched_model_rows or variant_matched:
+        if variant_matched:
             return False
 
         # Count distinct recommended tyre groups
@@ -225,20 +247,17 @@ class TyreRecommender:
         return len(distinct_tyres) >= 3
 
     def _get_variant_clarification(self, query: str, vehicle_rows: list[dict]) -> str:
-        """Return a clarification message listing available variants for the detected model."""
-        query_tokens = set(self._tokenize(query))
+        """Return a clarification message listing available variants for the matched model."""
+        model_rows = self._collect_model_rows(query, vehicle_rows, use_top_fallback=True)
+
         brand_name = None
         model_name = None
         variants: list[str] = []
 
-        for row in vehicle_rows[:20]:
+        for row in model_rows:
             brand = str(row.get("vehicle-brand", "")).strip()
             model = str(row.get("vehicle-model", "")).strip()
             variant = str(row.get("vehicle-variant", "")).strip()
-
-            model_tokens = set(self._tokenize(model))
-            if not query_tokens.intersection(model_tokens):
-                continue
 
             if brand_name is None:
                 brand_name = brand.title()
@@ -336,11 +355,13 @@ class TyreRecommender:
             logger.info("Brand-only ambiguous query detected. Returning model clarification.")
             return self._get_brand_clarification(query, vehicle_rows)
 
-        if vehicle_rows and self._is_variant_listing_query(query, vehicle_rows):
+        has_history = bool(history)
+
+        if vehicle_rows and self._is_variant_listing_query(query, vehicle_rows, has_history=has_history):
             logger.info("Variant listing query detected. Returning full variant list.")
             return self._get_variant_list_response(query, vehicle_rows)
 
-        if vehicle_rows and self._query_is_variant_ambiguous(query, vehicle_rows):
+        if vehicle_rows and self._query_is_variant_ambiguous(query, vehicle_rows, has_history=has_history):
             logger.info("Variant-ambiguous query detected. Returning variant clarification.")
             return self._get_variant_clarification(query, vehicle_rows)
 
