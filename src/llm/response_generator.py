@@ -148,7 +148,12 @@ The 1.4 VTVT and 1.6 VTVT S use <b>185/65R15 SecuraDrive TL</b>, with an upsize 
             ]
 
             if history:
-                messages.extend(history)
+                for msg in history:
+                    if msg.get("role") == "assistant":
+                        cleaned = re.sub(r'<[^>]+>', '', msg["content"])
+                        messages.append({"role": "assistant", "content": cleaned})
+                    else:
+                        messages.append(msg)
 
             messages.append({"role": "user", "content": prompt})
 
@@ -186,7 +191,12 @@ The 1.4 VTVT and 1.6 VTVT S use <b>185/65R15 SecuraDrive TL</b>, with an upsize 
                     )
                 }
             ]
-            messages.extend(history)
+            for msg in history:
+                if msg.get("role") == "assistant":
+                    cleaned = re.sub(r'<[^>]+>', '', msg["content"])
+                    messages.append({"role": "assistant", "content": cleaned})
+                else:
+                    messages.append(msg)
             messages.append({"role": "user", "content": query})
 
             response = client.chat.completions.create(
