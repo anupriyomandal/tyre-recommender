@@ -25,6 +25,8 @@ STOPWORDS = {
     "right", "best", "good", "first", "second",
     "fit", "fits", "fitted", "suitable",
     "use", "using", "used",
+    # common English words that cause spurious model matches (e.g. "one" → Force One)
+    "one", "also", "more", "about", "just", "like", "than",
 }
 
 class VectorSearch:

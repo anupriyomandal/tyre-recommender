@@ -30,6 +30,8 @@ STOPWORDS = {
     "right", "best", "good", "first", "second",
     "fit", "fits", "fitted", "suitable",
     "use", "using", "used",
+    # common English words that cause spurious model matches (e.g. "one" → Force One)
+    "one", "also", "more", "about", "just", "like", "than",
 }
 
 GREETINGS = {"hello", "hi", "hey", "howdy", "greetings", "hiya"}
@@ -352,25 +354,49 @@ class TyreRecommender:
         if self._is_thanks_or_closing(query) and not history:
             return "You're welcome! Feel free to ask if you need tyre recommendations for any other vehicle."
 
-        # Build search query: for follow-ups, combine with up to the last 3 user
-        # messages so that vehicle names mentioned several turns ago are not lost.
-        # Example: "tyre for verna" → "what options?" → "the SX one" — without
-        # the lookback, "verna" disappears from the search context by turn 3.
-        search_query = query
-        if history:
-            previous_user_msgs = [m["content"] for m in history if m["role"] == "user"]
-            if previous_user_msgs:
-                context_msgs = previous_user_msgs[-3:]  # last 3 user turns for context
-                search_query = f"{' '.join(context_msgs)} {query}"
+        logger.info(f"Starting recommendation workflow for query: '{query}'")
 
-        logger.info(f"Starting recommendation workflow for query: '{query}' (search: '{search_query}')")
+        # ── Two-phase search ──
+        # Phase 1: search with the current query alone.  If the top result's
+        #   model name appears in the current query tokens, the user is asking
+        #   about a specific vehicle → use these results directly.
+        # Phase 2 (follow-ups only): if the current query doesn't name a vehicle
+        #   (e.g. "the SX one", "tell me for all versions"), re-search with up
+        #   to the last 3 user messages prepended so the vehicle name from prior
+        #   turns is included.
+        # This prevents history contamination: "recommended tyre for baleno"
+        # after a Verna conversation must NOT return Verna results.
 
-        # 1 & 2. Vector search to retrieve vehicle rows
+        search_query = query  # default: current query only
+
         try:
-            vehicle_rows = self.vector_search.search(search_query, k=20)
+            vehicle_rows = self.vector_search.search(query, k=20)
         except Exception as e:
             logger.error(f"Search failed: {e}")
             return f"Error during search: {e}"
+
+        # Check whether the current query explicitly names the top vehicle model
+        current_tokens = {t for t in self._tokenize(query) if not self._is_year_token(t)}
+        top_model_tokens = set()
+        if vehicle_rows:
+            top_model_tokens = set(self._tokenize(str(vehicle_rows[0].get("vehicle-model", ""))))
+        current_names_vehicle = bool(
+            current_tokens and top_model_tokens and current_tokens.intersection(top_model_tokens)
+        )
+
+        if not current_names_vehicle and history:
+            # Follow-up: re-search with history context for proper vehicle recall
+            previous_user_msgs = [m["content"] for m in history if m["role"] == "user"]
+            if previous_user_msgs:
+                context_msgs = previous_user_msgs[-3:]
+                search_query = f"{' '.join(context_msgs)} {query}"
+                logger.info(f"Follow-up detected — re-searching with history: '{search_query}'")
+                try:
+                    vehicle_rows = self.vector_search.search(search_query, k=20)
+                except Exception as e:
+                    logger.error(f"History search failed: {e}")
+        else:
+            logger.info(f"Current query names vehicle directly — using Phase 1 results.")
 
         # Intent detection always uses the CURRENT user message (`query`), NOT the
         # combined `search_query`.  The combined string is only for vector retrieval —
