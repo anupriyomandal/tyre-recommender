@@ -9,7 +9,7 @@ const config: Config = {
     extend: {
       colors: {
         ceat: {
-          red: '#E4002B',
+          blue: '#0053AE',
           dark: '#1A1A1A',
         },
       },

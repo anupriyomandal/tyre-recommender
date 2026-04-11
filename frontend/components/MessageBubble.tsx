@@ -6,7 +6,7 @@ export default function MessageBubble({ message }: { message: Message }) {
   if (isUser) {
     return (
       <div className="flex justify-end animate-fade-in">
-        <div className="max-w-[80%] bg-ceat-red text-white rounded-2xl rounded-br-sm px-4 py-2.5 shadow-sm">
+        <div className="max-w-[80%] bg-ceat-blue text-white rounded-2xl rounded-br-sm px-4 py-2.5 shadow-sm">
           <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
         </div>
       </div>
@@ -15,7 +15,7 @@ export default function MessageBubble({ message }: { message: Message }) {
 
   return (
     <div className="flex items-end gap-2 animate-fade-in">
-      <div className="w-7 h-7 rounded-full bg-ceat-red flex items-center justify-center flex-shrink-0">
+      <div className="w-7 h-7 rounded-full bg-ceat-blue flex items-center justify-center flex-shrink-0">
         <svg
           width="14"
           height="14"

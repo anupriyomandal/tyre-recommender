@@ -49,7 +49,7 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
       <button
         onClick={handleSubmit}
         disabled={disabled || !value.trim()}
-        className="flex-shrink-0 w-8 h-8 rounded-xl bg-ceat-red flex items-center justify-center transition-opacity disabled:opacity-30 hover:opacity-90"
+        className="flex-shrink-0 w-8 h-8 rounded-xl bg-ceat-blue flex items-center justify-center transition-opacity disabled:opacity-30 hover:opacity-90"
         aria-label="Send"
       >
         <svg

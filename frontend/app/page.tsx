@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import MessageBubble from '@/components/MessageBubble'
 import ChatInput from '@/components/ChatInput'
+import CeatLogo from '@/components/CeatLogo'
 
 export type Message = {
   role: 'user' | 'assistant'
@@ -66,13 +67,8 @@ export default function Home() {
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-ceat-red flex items-center justify-center">
-            <TyreIcon />
-          </div>
-          <div>
-            <h1 className="text-sm font-semibold text-gray-900">CEAT Tyre Advisor</h1>
-            <p className="text-xs text-gray-500">Find the perfect tyre for your vehicle</p>
-          </div>
+          <CeatLogo className="h-8 w-auto" />
+          <p className="text-xs text-gray-500">Tyre Advisor</p>
         </div>
         <button
           onClick={clearChat}
@@ -105,8 +101,8 @@ export default function Home() {
 function TypingIndicator() {
   return (
     <div className="flex items-end gap-2 animate-fade-in">
-      <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-        <TyreIcon small />
+      <div className="w-7 h-7 rounded-full bg-ceat-blue flex items-center justify-center flex-shrink-0">
+        <TyreIcon />
       </div>
       <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
         <div className="flex gap-1 items-center h-4">
@@ -119,12 +115,11 @@ function TypingIndicator() {
   )
 }
 
-function TyreIcon({ small }: { small?: boolean }) {
-  const size = small ? 14 : 18
+function TyreIcon() {
   return (
     <svg
-      width={size}
-      height={size}
+      width="14"
+      height="14"
       viewBox="0 0 24 24"
       fill="none"
       stroke="white"
