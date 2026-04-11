@@ -85,13 +85,14 @@ class ResponseGenerator:
         rows_text = ""
         for i, ((brand, model, rec_tyre, upsize_tyre), variants) in enumerate(grouped_data.items(), 1):
             variants_str = ", ".join(variants)
+            upsize_display = upsize_tyre if upsize_tyre not in ("None", "nan", "", None) else "NOT AVAILABLE"
             rows_text += (
                 f"Group {i}:\n"
                 f"- Brand: {brand}\n"
                 f"- Model: {model}\n"
                 f"- Variants: {variants_str}\n"
                 f"- Recommended Tyre: {rec_tyre}\n"
-                f"- Upsize Tyre: {upsize_tyre}\n\n"
+                f"- Upsize Tyre: {upsize_display}\n\n"
             )
 
         prompt = f"""You are an automotive tyre recommendation expert.
@@ -115,7 +116,7 @@ Rules:
 6. CRITICAL: Never include load index or speed ratings (like 94Y, 100V, XL). Only mention tyre size and pattern name (e.g. "225/45R17 SportDrive TL").
 7. CRITICAL: Format all tyre names and vehicle names in bold using HTML <b>tags</b>. BANNED: Markdown **asterisks**. Never use **bold**.
 8. Do not add safety advice, driving tips, or anything beyond the tyre recommendation.
-9. If the user asks about upsize options: focus only on upsizes from the data. If no upsize tyre is listed for any group, say simply "There are no upsize options listed for this vehicle." Do NOT say "I don't exactly know" in this case.
+9. CRITICAL — Upsize questions: If the user asks about upsize and the data shows "Upsize Tyre: NOT AVAILABLE", you MUST say "There is no upsize option available for this vehicle." Do NOT repeat the recommended tyre. Do NOT say "I don't exactly know". Do NOT ignore the question. Just clearly state no upsize is available.
 10. If the data and history genuinely cannot answer the question at all, reply with exactly: I don't exactly know
 11. CRITICAL — Conversation continuity: If the conversation history already established a specific variant or vehicle (e.g. the user said "Verna SX" and you already answered about it), STAY FOCUSED on that specific variant for follow-up questions. Do NOT broaden your answer to all variants. The user's follow-up ("is there an upsize?") refers to the vehicle they already asked about, not every variant in the data.
 
