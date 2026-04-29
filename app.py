@@ -15,6 +15,8 @@ sys.path.insert(0, str(root_dir))
 
 from rich.console import Console
 from rich.panel import Panel
+from rich.live import Live
+from rich.text import Text
 from src.config import FAISS_INDEX_PATH, METADATA_PATH
 from src.recommender.tyre_recommender import TyreRecommender
 from src.utils.logger import logger
@@ -54,15 +56,22 @@ def main():
                 console.print("[yellow]Conversation history cleared.[/yellow]")
                 continue
 
-            # Stream the response word by word
+            # Stream the response with live formatting
             console.print("\n[bold purple]Agent>[/bold purple] ", end="")
             full_answer = ""
-            for chunk in recommender.recommend_stream(query, history=history):
-                full_answer += chunk
-                # Convert HTML bold tags to Rich markup for CLI display
-                display_chunk = chunk.replace("<b>", "[bold]").replace("</b>", "[/bold]")
-                console.print(display_chunk, end="")
-            console.print()  # newline at end
+            display_text = Text()
+
+            with Live(display_text, console=console, refresh_per_second=20, auto_refresh=False) as live:
+                for chunk in recommender.recommend_stream(query, history=history):
+                    full_answer += chunk
+                    # Re-render the full accumulated text with Rich markup
+                    display_text = Text.from_markup(
+                        full_answer.replace("<b>", "[bold]").replace("</b>", "[/bold]"),
+                        style="gray50"
+                    )
+                    live.update(display_text)
+
+            console.print()  # newline after streaming ends
 
             # Store the exchange in history
             history.append({"role": "user", "content": query})
