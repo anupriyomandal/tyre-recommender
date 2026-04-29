@@ -7,13 +7,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
+# Copy only requirements first for layer caching
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir fastapi uvicorn
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the project
-COPY . .
+# Copy application code and data separately
+COPY src/ ./src/
+COPY data/ ./data/
+COPY index/ ./index/
+COPY telegram_bot.py .
+COPY start.sh .
 
 # Make start script executable
 RUN chmod +x start.sh

@@ -1,0 +1,41 @@
+# Git
+.git/
+.gitignore
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+.venv/
+
+# Frontend (not needed for backend container)
+frontend/
+
+# Environment files
+.env
+.env.example
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Railway / Docker config
+railway.json
+Dockerfile
+.dockerignore
+
+# Documentation
+README.md
+
+# Claude internal
+.claude/
