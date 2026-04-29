@@ -361,7 +361,16 @@ class TyreRecommender:
             current_tokens and top_model_tokens and current_tokens.intersection(top_model_tokens)
         )
 
-        if not current_names_vehicle and history:
+        # Check if the query is ambiguous across multiple brands
+        # (e.g. "x3" matches both BMW X3 and a bad AUDI X3 record).
+        matched_brands = set()
+        for row in vehicle_rows[:10]:
+            model_tokens = set(self._tokenize(str(row.get("vehicle-model", ""))))
+            if current_tokens.intersection(model_tokens):
+                matched_brands.add(str(row.get("vehicle-brand", "")).strip().lower())
+        query_is_ambiguous = len(matched_brands) > 1
+
+        if (not current_names_vehicle or query_is_ambiguous) and history:
             # Follow-up: re-search with history context for proper vehicle recall
             previous_user_msgs = [m["content"] for m in history if m["role"] == "user"]
             if previous_user_msgs:
