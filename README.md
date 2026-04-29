@@ -24,15 +24,12 @@ A production-quality Python CLI application to recommend tyres for vehicles usin
 
 ## Strict Context Behavior
 
-The retriever now uses hybrid ranking:
-- semantic search with FAISS to get candidates
-- BM25 re-ranking to prioritize rows that actually match query keywords
+The retriever uses semantic search with FAISS and token-overlap sorting to prioritize rows that match query keywords.
 
 If context is weak, the app returns exactly:
 `Sorry, I don't know that`
 
 You can tune strictness in `.env`:
-- `BM25_MIN_SCORE` (default `0.05`)
 - `OVERLAP_THRESHOLD_SHORT_QUERY` (default `0.5`, for <=2 tokens)
 - `OVERLAP_THRESHOLD_MEDIUM_QUERY` (default `0.3`, for 3-5 tokens)
 - `OVERLAP_THRESHOLD_LONG_QUERY` (default `0.2`, for >=6 tokens)

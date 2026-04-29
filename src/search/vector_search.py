@@ -1,7 +1,5 @@
 from pathlib import Path
-import math
 import re
-from collections import Counter
 from src.embeddings.embedding_model import EmbeddingModel
 from src.indexing.faiss_indexer import FaissIndexer
 from src.utils.logger import get_logger
@@ -38,39 +36,6 @@ class VectorSearch:
         ]
         return " ".join(str(record.get(key, "")) for key in keys)
 
-    def _bm25_scores(self, query_tokens: list[str], docs_tokens: list[list[str]]) -> list[float]:
-        if not query_tokens or not docs_tokens:
-            return [0.0] * len(docs_tokens)
-
-        n_docs = len(docs_tokens)
-        doc_lens = [len(doc) for doc in docs_tokens]
-        avgdl = (sum(doc_lens) / n_docs) if n_docs else 0.0
-        tf_docs = [Counter(doc) for doc in docs_tokens]
-
-        df = Counter()
-        for tokens in docs_tokens:
-            for token in set(tokens):
-                df[token] += 1
-
-        k1 = 1.5
-        b = 0.75
-        unique_query_terms = set(query_tokens)
-
-        scores: list[float] = []
-        for doc_idx, tf in enumerate(tf_docs):
-            score = 0.0
-            dl = max(doc_lens[doc_idx], 1)
-            for term in unique_query_terms:
-                freq = tf.get(term, 0)
-                if freq == 0:
-                    continue
-                term_df = df.get(term, 0)
-                idf = math.log(((n_docs - term_df + 0.5) / (term_df + 0.5)) + 1.0)
-                denom = freq + k1 * (1.0 - b + b * (dl / avgdl if avgdl else 1.0))
-                score += idf * ((freq * (k1 + 1.0)) / denom)
-            scores.append(score)
-        return scores
-
     def _token_overlap(self, query_tokens: list[str], doc_tokens: list[str]) -> float:
         if not query_tokens:
             return 0.0
@@ -81,9 +46,8 @@ class VectorSearch:
     def search(self, query: str, k: int = 5) -> list[dict]:
         """
         1 convert query to embedding
-        2 retrieve larger candidate set from FAISS
-        3 BM25 rerank to push keyword-aligned rows up
-        4 return structured vehicle records
+        2 retrieve candidate set from FAISS
+        3 return structured vehicle records sorted by overlap then similarity
         """
         logger.info(f"Searching for query: '{query}'")
         query_tokens = self._tokenize(query)
@@ -99,7 +63,6 @@ class VectorSearch:
         distances, indices = self.indexer.index.search(query_embedding, candidate_k)
 
         candidates: list[dict] = []
-        candidate_tokens: list[list[str]] = []
         for i, idx in enumerate(indices[0]):
             if idx == -1:
                 continue  # not enough results
@@ -110,22 +73,13 @@ class VectorSearch:
             record["similarity_score"] = float(distances[0][i])
             record["token_overlap"] = self._token_overlap(query_tokens, doc_tokens)
             candidates.append(record)
-            candidate_tokens.append(doc_tokens)
 
         if not candidates:
             logger.info("No matching records found.")
             return []
 
-        # 3. BM25 rerank over vector candidates
-        bm25_scores = self._bm25_scores(query_tokens, candidate_tokens)
-        for i, score in enumerate(bm25_scores):
-            candidates[i]["bm25_score"] = float(score)
-
         # Sort by overlap first (exact brand/model keyword match),
         # then by semantic similarity as tiebreaker.
-        # BM25 is kept for _has_strong_context_match gating but NOT used
-        # as a primary sort key — it can misfire when year tokens (e.g. "2017")
-        # match unrelated vehicles with that year in their manufacturing range.
         candidates.sort(
             key=lambda item: (
                 item.get("token_overlap", 0.0),
@@ -134,7 +88,7 @@ class VectorSearch:
             reverse=True,
         )
 
-        # 4. Select top-k distinct tyre groups, then return ALL rows that belong
+        # 3. Select top-k distinct tyre groups, then return ALL rows that belong
         #    to those groups so the LLM sees every variant — not just one per group.
         def _group_key(row: dict) -> tuple:
             return (

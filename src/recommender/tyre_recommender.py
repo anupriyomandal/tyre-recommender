@@ -3,7 +3,6 @@ import re
 from src.search.vector_search import VectorSearch
 from src.llm.response_generator import ResponseGenerator
 from src.config import (
-    BM25_MIN_SCORE,
     OVERLAP_THRESHOLD_SHORT_QUERY,
     OVERLAP_THRESHOLD_MEDIUM_QUERY,
     OVERLAP_THRESHOLD_LONG_QUERY,
@@ -25,7 +24,6 @@ class TyreRecommender:
         self.vector_search = VectorSearch(index_path, metadata_path)
         self.response_generator = ResponseGenerator()
         self.unknown_answer = "I don't exactly know"
-        self.bm25_min_score = BM25_MIN_SCORE
         self.overlap_threshold_short = OVERLAP_THRESHOLD_SHORT_QUERY
         self.overlap_threshold_medium = OVERLAP_THRESHOLD_MEDIUM_QUERY
         self.overlap_threshold_long = OVERLAP_THRESHOLD_LONG_QUERY
@@ -311,11 +309,10 @@ class TyreRecommender:
         required_overlap = self._required_overlap_threshold(query_tokens)
 
         top_window = vehicle_rows[:3]
-        best_bm25 = max(float(row.get("bm25_score", 0.0)) for row in top_window)
         best_overlap = max(float(row.get("token_overlap", 0.0)) for row in top_window)
         best_similarity = max(float(row.get("similarity_score", 0.0)) for row in top_window)
 
-        lexical_pass = best_bm25 >= self.bm25_min_score and best_overlap >= required_overlap
+        lexical_pass = best_overlap >= required_overlap
         semantic_pass = best_similarity >= self.vector_similarity_min
         return semantic_pass or lexical_pass
 
