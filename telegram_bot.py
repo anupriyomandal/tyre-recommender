@@ -76,6 +76,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(answer, parse_mode="HTML")
 
 
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Log errors caused by updates."""
+    logger.error(f"Update {update} caused error: {context.error}", exc_info=context.error)
+
+    # Notify the user that something went wrong
+    if update and update.effective_message:
+        await update.effective_message.reply_text(
+            "⚠️ Sorry, something went wrong on my end. Please try again later."
+        )
+
+
 def main():
     if not TELEGRAM_BOT_TOKEN:
         raise ValueError("TELEGRAM_BOT_TOKEN is not set in the environment.")
@@ -86,6 +97,9 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    # Register error handler
+    app.add_error_handler(error_handler)
 
     logger.info("Telegram bot is starting...")
     app.run_polling()
