@@ -1,6 +1,12 @@
 import type { Message } from '@/app/page'
 
-export default function MessageBubble({ message }: { message: Message }) {
+export default function MessageBubble({
+  message,
+  isStreaming = false,
+}: {
+  message: Message
+  isStreaming?: boolean
+}) {
   const isUser = message.role === 'user'
 
   if (isUser) {
@@ -35,10 +41,18 @@ export default function MessageBubble({ message }: { message: Message }) {
         </svg>
       </div>
       <div className="max-w-[80%] bg-white border border-gray-200 rounded-2xl rounded-bl-sm px-4 py-2.5 shadow-sm">
-        <p
-          className="text-sm leading-relaxed text-gray-800"
-          dangerouslySetInnerHTML={{ __html: message.content }}
-        />
+        {isStreaming && !message.content ? (
+          <div className="flex gap-1 items-center h-4">
+            <span className="typing-dot w-2 h-2 rounded-full bg-gray-400 block" />
+            <span className="typing-dot w-2 h-2 rounded-full bg-gray-400 block" />
+            <span className="typing-dot w-2 h-2 rounded-full bg-gray-400 block" />
+          </div>
+        ) : (
+          <p
+            className="text-sm leading-relaxed text-gray-800"
+            dangerouslySetInnerHTML={{ __html: message.content }}
+          />
+        )}
       </div>
     </div>
   )

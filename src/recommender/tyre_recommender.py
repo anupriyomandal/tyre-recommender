@@ -437,3 +437,93 @@ class TyreRecommender:
         except Exception as e:
             logger.error(f"Response generation failed: {e}")
             return f"Error creating recommendation: {e}"
+
+    def recommend_stream(self, query: str, history: list[dict] | None = None):
+        """
+        Same as recommend() but yields response chunks for streaming.
+        """
+        # Handle greetings
+        if self._is_greeting(query):
+            yield "Hi! I'm your tyre recommendation assistant. Tell me your vehicle's make and model and I'll suggest the right tyres."
+            return
+
+        # Handle closings/thanks
+        if self._is_thanks_or_closing(query) and not history:
+            yield "You're welcome! Feel free to ask if you need tyre recommendations for any other vehicle."
+            return
+
+        logger.info(f"Starting recommendation workflow for query: '{query}'")
+
+        search_query = query
+
+        try:
+            vehicle_rows = self.vector_search.search(query, k=20)
+        except Exception as e:
+            logger.error(f"Search failed: {e}")
+            yield f"Error during search: {e}"
+            return
+
+        current_tokens = {t for t in self._tokenize(query) if not self._is_year_token(t)}
+        top_model_tokens = set()
+        if vehicle_rows:
+            top_model_tokens = set(self._tokenize(str(vehicle_rows[0].get("vehicle-model", ""))))
+        current_names_vehicle = bool(
+            current_tokens and top_model_tokens and current_tokens.intersection(top_model_tokens)
+        )
+
+        matched_brands = set()
+        for row in vehicle_rows[:10]:
+            model_tokens = set(self._tokenize(str(row.get("vehicle-model", ""))))
+            if current_tokens.intersection(model_tokens):
+                matched_brands.add(str(row.get("vehicle-brand", "")).strip().lower())
+        query_is_ambiguous = len(matched_brands) > 1
+
+        if (not current_names_vehicle or query_is_ambiguous) and history:
+            previous_user_msgs = [m["content"] for m in history if m["role"] == "user"]
+            if previous_user_msgs:
+                context_msgs = previous_user_msgs[-3:]
+                search_query = f"{' '.join(context_msgs)} {query}"
+                logger.info(f"Follow-up detected — re-searching with history: '{search_query}'")
+                try:
+                    vehicle_rows = self.vector_search.search(search_query, k=20)
+                except Exception as e:
+                    logger.error(f"History search failed: {e}")
+        else:
+            logger.info(f"Current query names vehicle directly — using Phase 1 results.")
+
+        if vehicle_rows and self._query_is_brand_only_ambiguous(query, vehicle_rows):
+            logger.info("Brand-only ambiguous query detected. Returning model clarification.")
+            yield self._get_brand_clarification(query, vehicle_rows)
+            return
+
+        has_match = self._has_strong_context_match(search_query, vehicle_rows)
+
+        if not has_match:
+            if history:
+                logger.info("No strong context match but history present — routing to LLM for conversational reply.")
+                try:
+                    for chunk in self.response_generator._generate_conversational_stream(query, history):
+                        yield chunk
+                    return
+                except Exception as e:
+                    logger.error(f"Conversational fallback failed: {e}")
+            logger.info("No sufficiently relevant context found. Returning helpful redirect.")
+            yield "I can help you find the right tyres. Please share the make and model of your vehicle (e.g. Honda City, Maruti Swift, Toyota Fortuner)."
+            return
+
+        top_brand = str(vehicle_rows[0].get("vehicle-brand", "")).strip().lower()
+        top_model = str(vehicle_rows[0].get("vehicle-model", "")).strip().lower()
+        filtered_rows = [
+            r for r in vehicle_rows
+            if str(r.get("vehicle-brand", "")).strip().lower() == top_brand
+            and str(r.get("vehicle-model", "")).strip().lower() == top_model
+        ]
+        if not filtered_rows:
+            filtered_rows = vehicle_rows
+
+        try:
+            for chunk in self.response_generator.generate_stream(query, filtered_rows, history=history):
+                yield chunk
+        except Exception as e:
+            logger.error(f"Response generation failed: {e}")
+            yield f"Error creating recommendation: {e}"

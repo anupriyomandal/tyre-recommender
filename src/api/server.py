@@ -7,6 +7,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from src.api.schemas import QueryRequest
 from src.config import FAISS_INDEX_PATH, METADATA_PATH
 from src.recommender.tyre_recommender import TyreRecommender
@@ -61,3 +62,34 @@ def ask(request: QueryRequest):
     except Exception as e:
         logger.error(f"/ask error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/ask/stream")
+def ask_stream(request: QueryRequest):
+    """
+    Accept a natural-language query and stream a tyre recommendation via SSE.
+    """
+    if recommender is None:
+        raise HTTPException(status_code=503, detail="Recommender not initialized.")
+
+    def event_generator():
+        try:
+            for chunk in recommender.recommend_stream(request.query, history=request.history):
+                # Escape newlines for SSE
+                text = chunk.replace("\n", "\\n")
+                yield f"data: {text}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            logger.error(f"/ask/stream error: {e}")
+            yield f"data: Error: {str(e).replace(chr(10), ' ')}\n\n"
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

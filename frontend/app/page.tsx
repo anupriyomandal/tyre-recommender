@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import MessageBubble from '@/components/MessageBubble'
 import ChatInput from '@/components/ChatInput'
 import CeatLogo from '@/components/CeatLogo'
@@ -19,17 +19,19 @@ const WELCOME_MESSAGE: Message = {
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE])
   const [loading, setLoading] = useState(false)
+  const [partialAnswer, setPartialAnswer] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading])
+  }, [messages, loading, partialAnswer])
 
-  const sendMessage = async (query: string) => {
+  const sendMessage = useCallback(async (query: string) => {
     const userMsg: Message = { role: 'user', content: query }
     const updatedMessages = [...messages, userMsg]
     setMessages(updatedMessages)
     setLoading(true)
+    setPartialAnswer('')
 
     // Build history excluding the static welcome message
     const history = updatedMessages
@@ -41,25 +43,80 @@ export default function Home() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, history }),
+        body: JSON.stringify({ query, history, stream: true }),
       })
 
-      const data = await res.json()
-      const answer = data.answer ?? data.error ?? 'Something went wrong. Please try again.'
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: data.error || 'Something went wrong. Please try again.' },
+        ])
+        return
+      }
 
-      setMessages((prev) => [...prev, { role: 'assistant', content: answer }])
+      const reader = res.body?.getReader()
+      if (!reader) {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: 'Could not read response. Please try again.' },
+        ])
+        return
+      }
+
+      const decoder = new TextDecoder()
+      let fullAnswer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6)
+            if (data === '[DONE]') {
+              setLoading(false)
+              setPartialAnswer('')
+              setMessages((prev) => [...prev, { role: 'assistant', content: fullAnswer }])
+              return
+            }
+            if (data.startsWith('Error:')) {
+              setLoading(false)
+              setPartialAnswer('')
+              setMessages((prev) => [...prev, { role: 'assistant', content: data }])
+              return
+            }
+            // Unescape newlines
+            const text = data.replace(/\\n/g, '\n')
+            fullAnswer += text
+            setPartialAnswer(fullAnswer)
+          }
+        }
+      }
+
+      // If stream ended without [DONE], commit whatever we have
+      setLoading(false)
+      setPartialAnswer('')
+      if (fullAnswer) {
+        setMessages((prev) => [...prev, { role: 'assistant', content: fullAnswer }])
+      }
     } catch {
+      setLoading(false)
+      setPartialAnswer('')
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: 'Could not reach the server. Please try again.' },
       ])
-    } finally {
-      setLoading(false)
     }
-  }
+  }, [messages])
 
   const clearChat = () => {
     setMessages([WELCOME_MESSAGE])
+    setPartialAnswer('')
+    setLoading(false)
   }
 
   return (
@@ -83,7 +140,13 @@ export default function Home() {
         {messages.map((msg, i) => (
           <MessageBubble key={i} message={msg} />
         ))}
-        {loading && <TypingIndicator />}
+        {(loading || partialAnswer) && (
+          <MessageBubble
+            key="streaming"
+            message={{ role: 'assistant', content: partialAnswer || '' }}
+            isStreaming={loading && !partialAnswer}
+          />
+        )}
         <div ref={bottomRef} />
       </div>
 
@@ -95,44 +158,5 @@ export default function Home() {
         </p>
       </div>
     </div>
-  )
-}
-
-function TypingIndicator() {
-  return (
-    <div className="flex items-end gap-2 animate-fade-in">
-      <div className="w-7 h-7 rounded-full bg-ceat-blue flex items-center justify-center flex-shrink-0">
-        <TyreIcon />
-      </div>
-      <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
-        <div className="flex gap-1 items-center h-4">
-          <span className="typing-dot w-2 h-2 rounded-full bg-gray-400 block" />
-          <span className="typing-dot w-2 h-2 rounded-full bg-gray-400 block" />
-          <span className="typing-dot w-2 h-2 rounded-full bg-gray-400 block" />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function TyreIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="white"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="3" />
-      <line x1="12" y1="2" x2="12" y2="9" />
-      <line x1="12" y1="15" x2="12" y2="22" />
-      <line x1="2" y1="12" x2="9" y2="12" />
-      <line x1="15" y1="12" x2="22" y2="12" />
-    </svg>
   )
 }
