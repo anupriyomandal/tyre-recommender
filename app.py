@@ -8,7 +8,6 @@ from pathlib import Path
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 warnings.filterwarnings("ignore")
 logging.getLogger("transformers").setLevel(logging.ERROR)
-logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
 
 # Add the root directory to the python path
 root_dir = Path(__file__).parent
@@ -26,7 +25,7 @@ console = Console()
 
 def main():
     console.print(Panel.fit("[bold blue]Tyre Recommender Assistant[/bold blue]\nType 'exit' or 'quit' to close the application."))
-    
+
     try:
         # Initialize the recommender once
         with console.status("[blue]Loading FAISS index and initializing recommender...[/blue]"):
@@ -42,10 +41,10 @@ def main():
     while True:
         try:
             query = console.input("\n[bold green]User>[/bold green] ").strip()
-            
+
             if not query:
                 continue
-                
+
             if query.lower() in ['exit', 'quit']:
                 console.print("[blue]Goodbye![/blue]")
                 break
@@ -54,22 +53,25 @@ def main():
                 history.clear()
                 console.print("[yellow]Conversation history cleared.[/yellow]")
                 continue
-                
-            with console.status("[blue]Agent is thinking...[/blue]"):
-                answer = recommender.recommend(query, history=history)
-            
+
+            # Stream the response word by word
+            console.print("\n[bold purple]Agent>[/bold purple] ", end="")
+            full_answer = ""
+            for chunk in recommender.recommend_stream(query, history=history):
+                full_answer += chunk
+                # Convert HTML bold tags to Rich markup for CLI display
+                display_chunk = chunk.replace("<b>", "[bold]").replace("</b>", "[/bold]")
+                console.print(display_chunk, end="")
+            console.print()  # newline at end
+
             # Store the exchange in history
             history.append({"role": "user", "content": query})
-            history.append({"role": "assistant", "content": answer})
-            
+            history.append({"role": "assistant", "content": full_answer})
+
             # Keep history to last 10 exchanges (20 messages) to avoid token overflow
             if len(history) > 20:
                 history = history[-20:]
-            
-            # Convert HTML bold tags to Rich markup for CLI display
-            display_answer = answer.replace("<b>", "[bold]").replace("</b>", "[/bold]")
-            console.print(f"\n[bold purple]Agent>[/bold purple] {display_answer}")
-                
+
         except KeyboardInterrupt:
             # Handle Ctrl+C gracefully
             console.print("\n[blue]Goodbye![/blue]")
