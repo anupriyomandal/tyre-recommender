@@ -15,8 +15,6 @@ sys.path.insert(0, str(root_dir))
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.live import Live
-from rich.text import Text
 from src.config import FAISS_INDEX_PATH, METADATA_PATH
 from src.recommender.tyre_recommender import TyreRecommender
 from src.utils.logger import logger
@@ -56,30 +54,20 @@ def main():
                 console.print("[yellow]Conversation history cleared.[/yellow]")
                 continue
 
-            # Stream the response with live formatting
-            console.print("\n[bold purple]Agent>[/bold purple] ", end="")
-            full_answer = ""
-            display_text = Text()
-
-            with Live(display_text, console=console, refresh_per_second=20, auto_refresh=False) as live:
-                for chunk in recommender.recommend_stream(query, history=history):
-                    full_answer += chunk
-                    # Re-render the full accumulated text with Rich markup
-                    display_text = Text.from_markup(
-                        full_answer.replace("<b>", "[bold]").replace("</b>", "[/bold]"),
-                        style="gray50"
-                    )
-                    live.update(display_text)
-
-            console.print()  # newline after streaming ends
+            with console.status("[blue]Agent is thinking...[/blue]"):
+                answer = recommender.recommend(query, history=history)
 
             # Store the exchange in history
             history.append({"role": "user", "content": query})
-            history.append({"role": "assistant", "content": full_answer})
+            history.append({"role": "assistant", "content": answer})
 
             # Keep history to last 10 exchanges (20 messages) to avoid token overflow
             if len(history) > 20:
                 history = history[-20:]
+
+            # Convert HTML bold tags to Rich markup for CLI display
+            display_answer = answer.replace("<b>", "[bold]").replace("</b>", "[/bold]")
+            console.print(f"\n[bold purple]Agent>[/bold purple] {display_answer}")
 
         except KeyboardInterrupt:
             # Handle Ctrl+C gracefully
