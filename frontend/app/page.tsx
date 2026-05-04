@@ -179,6 +179,11 @@ export default function Home() {
           Ask about any vehicle — e.g. "Honda City", "Toyota Fortuner", "Hyundai Creta"
         </p>
       </div>
+
+      {/* Footer */}
+      <footer className="px-4 py-2 bg-gray-50 text-center">
+        <p className="text-[10px] text-gray-400">Made by Anupriyo Mandal</p>
+      </footer>
     </div>
   )
 }
