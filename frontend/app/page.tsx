@@ -20,15 +20,24 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE])
   const [loading, setLoading] = useState(false)
   const [partialAnswer, setPartialAnswer] = useState('')
+  const [visitCount, setVisitCount] = useState<number | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading, partialAnswer])
 
-  // Record a page visit once on load
+  // Record a page visit once on load and fetch current stats
   useEffect(() => {
     fetch('/api/visit', { method: 'POST' }).catch(() => {})
+    fetch('/api/stats')
+      .then((res) => res.json())
+      .then((data) => {
+        if (typeof data.total_visits === 'number') {
+          setVisitCount(data.total_visits)
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const sendMessage = useCallback(async (query: string) => {
@@ -132,12 +141,20 @@ export default function Home() {
           <CeatLogo className="h-8 w-auto" />
           <p className="text-xs text-gray-500">Tyre Advisor</p>
         </div>
-        <button
-          onClick={clearChat}
-          className="text-xs text-gray-400 hover:text-gray-600 transition-colors px-2 py-1 rounded hover:bg-gray-100"
-        >
-          Clear chat
-        </button>
+        <div className="flex items-center gap-3">
+          {visitCount !== null && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700 border border-green-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+              {visitCount.toLocaleString()} visits
+            </span>
+          )}
+          <button
+            onClick={clearChat}
+            className="text-xs text-gray-400 hover:text-gray-600 transition-colors px-2 py-1 rounded hover:bg-gray-100"
+          >
+            Clear chat
+          </button>
+        </div>
       </header>
 
       {/* Messages */}
