@@ -30,7 +30,7 @@ export default function Home() {
   // Record a page visit once on load and fetch current stats
   useEffect(() => {
     fetch('/api/visit', { method: 'POST' }).catch(() => {})
-    fetch('/api/stats')
+    fetch('/api/stats', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
         if (typeof data.total_visits === 'number') {
