@@ -55,6 +55,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "query": user_query,
                 "history": context.chat_data["history"]
             },
+            headers={"X-Source": "telegram"},
             timeout=30,
         )
         response.raise_for_status()

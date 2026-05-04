@@ -26,6 +26,11 @@ export default function Home() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading, partialAnswer])
 
+  // Record a page visit once on load
+  useEffect(() => {
+    fetch('/api/visit', { method: 'POST' }).catch(() => {})
+  }, [])
+
   const sendMessage = useCallback(async (query: string) => {
     const userMsg: Message = { role: 'user', content: query }
     const updatedMessages = [...messages, userMsg]
