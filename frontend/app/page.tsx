@@ -21,6 +21,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [partialAnswer, setPartialAnswer] = useState('')
   const [visitCount, setVisitCount] = useState<number | null>(null)
+  const [onlineCount, setOnlineCount] = useState<number | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -35,6 +36,9 @@ export default function Home() {
       .then((data) => {
         if (typeof data.total_visits === 'number') {
           setVisitCount(data.total_visits)
+        }
+        if (typeof data.online_now === 'number') {
+          setOnlineCount(data.online_now)
         }
       })
       .catch(() => {})
@@ -142,6 +146,15 @@ export default function Home() {
           <p className="text-xs text-gray-500">Tyre Advisor</p>
         </div>
         <div className="flex items-center gap-3">
+          {onlineCount !== null && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 border border-blue-200">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500" />
+              </span>
+              {onlineCount.toLocaleString()} online
+            </span>
+          )}
           {visitCount !== null && (
             <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700 border border-green-200">
               <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
