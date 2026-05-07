@@ -10,6 +10,7 @@ const config: Config = {
       colors: {
         ceat: {
           blue: '#0053AE',
+          orange: '#F5822D',
           dark: '#1A1A1A',
         },
       },

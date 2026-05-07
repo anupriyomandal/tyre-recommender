@@ -1,5 +1,40 @@
 import type { Message } from '@/app/page'
 
+// Known CEAT tyre models — sorted longest first so multi-word names match first
+const CEAT_MODELS = [
+  'SportDrive SUV',
+  'SportDrive',
+  'SecuraDrive SUV',
+  'SecuraDrive SD004',
+  'SecuraDrive',
+  'Milaze X5',
+  'Milaze X3',
+  'Milaze LT',
+  'Milaze',
+  'CrossDrive AT',
+  'CrossDrive HT',
+  'CrossDrive',
+  'EnergyDrive EV',
+  'EnergyDrive',
+  'SD004',
+].sort((a, b) => b.length - a.length)
+
+const MODEL_PATTERN = CEAT_MODELS.map((m) => m.replace(/\s+/g, '\\s+')).join('|')
+const TYRE_PATTERN = new RegExp(
+  `(\\d{3}/\\d{2,3}R\\d{2})\\s+(${MODEL_PATTERN})(?:\\s+(TL|TT))?`,
+  'gi'
+)
+
+function colorizeTyres(html: string): string {
+  return html.replace(
+    TYRE_PATTERN,
+    (_match, size: string, model: string, suffix: string | undefined) => {
+      const suffixHtml = suffix ? ` ${suffix}` : ''
+      return `<span class="text-ceat-orange">${size}</span> <span class="text-ceat-blue">${model}</span>${suffixHtml}`
+    }
+  )
+}
+
 export default function MessageBubble({
   message,
   isStreaming = false,
@@ -18,6 +53,8 @@ export default function MessageBubble({
       </div>
     )
   }
+
+  const formattedContent = colorizeTyres(message.content)
 
   return (
     <div className="flex items-end gap-2 animate-fade-in">
@@ -50,7 +87,7 @@ export default function MessageBubble({
         ) : (
           <p
             className="text-sm leading-relaxed text-gray-800"
-            dangerouslySetInnerHTML={{ __html: message.content }}
+            dangerouslySetInnerHTML={{ __html: formattedContent }}
           />
         )}
       </div>
